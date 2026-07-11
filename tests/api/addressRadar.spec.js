@@ -264,6 +264,48 @@ describe("address radar API", () => {
     expect(fetchMock.mock.calls.some(([url]) => queryParam(url, "from_address") === `eq.${CENTER}`)).toBe(true);
   });
 
+  it("rejects requests before querying upstream when the shared limit is exhausted", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const mod = await import("../../api/address-radar.js");
+    const handler = mod.default || mod;
+    handler._internal.setRateLimiterForTests({
+      consume: vi.fn().mockResolvedValue({
+        allowed: false,
+        limit: 24,
+        remaining: 0,
+        resetAtMs: Date.now() + 30_000,
+        retryAfterSeconds: 30,
+      }),
+    });
+    const res = createMockRes();
+
+    await handler(request({ mode: "path", network: "mainnet", source: CENTER, target: TARGET }), res);
+
+    expect(res.statusCode).toBe(429);
+    expect(res.headers["X-RateLimit-Limit"]).toBe("24");
+    expect(res.headers["Retry-After"]).toBe("30");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the shared rate-limit backend is unavailable", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const mod = await import("../../api/address-radar.js");
+    const handler = mod.default || mod;
+    handler._internal.setRateLimiterForTests({
+      consume: vi.fn().mockRejectedValue(new Error("upstash unavailable")),
+    });
+    const res = createMockRes();
+
+    await handler(request({ mode: "direct", network: "mainnet", address: CENTER }), res);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+    expect(res.headers["Retry-After"]).toBe("2");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid requests before touching the indexer", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

@@ -72,14 +72,15 @@ async function captureApiException(error, { route = "", req = null, extraContext
 }
 
 function withApiTelemetry(route, handler) {
-  return async function wrappedHandler(req, res) {
+  async function wrappedHandler(req, res) {
     try {
       return await handler(req, res);
     } catch (error) {
       await captureApiException(error, { route, req });
       throw error;
     }
-  };
+  }
+  return Object.assign(wrappedHandler, handler);
 }
 
 module.exports = {

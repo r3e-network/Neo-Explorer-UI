@@ -19,7 +19,11 @@
 
       <!-- Value row -->
       <slot name="value">
-        <p class="text-2xl font-extrabold text-high tabular-nums tracking-tight neon-glow-text">
+        <p
+          class="min-w-0 font-extrabold leading-tight text-high tabular-nums neon-glow-text [letter-spacing:0]"
+          :class="valueSizeClass"
+          data-testid="dashboard-stat-value"
+        >
           <AnimatedNumber
             v-if="animated && value != null"
             :value="value"
@@ -103,5 +107,12 @@ const formattedValue = computed(() => {
     minimumFractionDigits: props.decimals,
     maximumFractionDigits: props.decimals,
   });
+});
+
+const valueSizeClass = computed(() => {
+  const displayLength = `${props.prefix}${formattedValue.value}${props.suffix}`.length;
+  if (displayLength >= 18) return "break-all text-base";
+  if (displayLength >= 11) return "break-words text-lg";
+  return "text-2xl";
 });
 </script>

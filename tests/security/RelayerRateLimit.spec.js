@@ -237,6 +237,25 @@ describe("relayer rate-limit behavior", () => {
     expect(cfg?.token).toBe("token-123");
   });
 
+  it("supports endpoint-specific shared limiter controls", () => {
+    const env = {
+      UPSTASH_REDIS_REST_URL: "https://demo.upstash.io",
+      UPSTASH_REDIS_REST_TOKEN: "token-123",
+      ADDRESS_RADAR_RATE_LIMIT_DISABLE_SHARED: "1",
+    };
+    expect(resolveUpstashConfig(env, {
+      disableEnvKey: "ADDRESS_RADAR_RATE_LIMIT_DISABLE_SHARED",
+    })).toBeNull();
+
+    const limiter = createDefaultRateLimiter({
+      env,
+      disableEnvKey: "ADDRESS_RADAR_RATE_LIMIT_DISABLE_SHARED",
+      failOpenEnvKey: "ADDRESS_RADAR_RATE_LIMIT_FAIL_OPEN",
+      fetchImpl: vi.fn(),
+    });
+    expect(limiter.isShared).toBe(false);
+  });
+
   it("uses upstash shared limiter when configured", () => {
     const limiter = createDefaultRateLimiter({
       env: {

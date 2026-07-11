@@ -1,6 +1,7 @@
 const { runWithConcurrency } = require("./lib/concurrency");
 const { sendJson } = require("./lib/http");
-const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
+const { getClientIp, resolveDefaultTrustProxy } = require("./lib/simpleRateLimit");
+const { createDefaultRateLimiter } = require("./lib/relayerRateLimit");
 const { withApiTelemetry } = require("./lib/telemetry");
 
 module.exports.config = {
@@ -37,6 +38,52 @@ const DIRECT_RETRY_TIMEOUT_MS = 3200;
 const SEARCH_BUDGET_MS = 7500;
 const MAX_EDGE_TX_HASHES = 8;
 const MAX_EDGE_SAMPLES = 4;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function createAddressRadarRateLimiter() {
+  return createDefaultRateLimiter({
+    disableEnvKey: "ADDRESS_RADAR_RATE_LIMIT_DISABLE_SHARED",
+    failOpenEnvKey: "ADDRESS_RADAR_RATE_LIMIT_FAIL_OPEN",
+  });
+}
+
+let addressRadarRateLimiter = createAddressRadarRateLimiter();
+
+function positiveIntFromEnv(name, fallback) {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function enforceAddressRadarRateLimit(req, res, mode, network) {
+  const maxRequests = mode === "path"
+    ? positiveIntFromEnv("ADDRESS_RADAR_PATH_RATE_LIMIT_PER_MINUTE", 24)
+    : positiveIntFromEnv("ADDRESS_RADAR_DIRECT_RATE_LIMIT_PER_MINUTE", 90);
+  const ip = getClientIp(req, { trustProxy: resolveDefaultTrustProxy() });
+  let result;
+  try {
+    result = await Promise.resolve(addressRadarRateLimiter.consume({
+      key: `address-radar:${network}:${mode}:${ip}`,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+      maxRequests,
+    }));
+  } catch (error) {
+    sendJson(res, 503, {
+      error: "Rate limiting backend temporarily unavailable. Please retry shortly.",
+    }, { "Cache-Control": "no-store", "Retry-After": "2" });
+    return false;
+  }
+
+  res.setHeader("X-RateLimit-Limit", String(result.limit));
+  res.setHeader("X-RateLimit-Remaining", String(result.remaining));
+  res.setHeader("X-RateLimit-Reset", String(Math.max(1, Math.ceil(result.resetAtMs / 1000))));
+  if (result.allowed) return true;
+
+  res.setHeader("Retry-After", String(result.retryAfterSeconds));
+  sendJson(res, 429, {
+    error: `Rate limit exceeded. Retry in ${result.retryAfterSeconds}s.`,
+  }, { "Cache-Control": "no-store" });
+  return false;
+}
 
 function firstQueryValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -705,14 +752,7 @@ async function handler(req, res) {
     return sendJson(res, 400, { error: error.message || "Invalid address radar request." }, cacheHeaders("direct"));
   }
 
-  if (!enforceSimpleRateLimit({
-    req,
-    res,
-    prefix: "address-radar",
-    key: `${mode}:${network}`,
-    windowMs: 60_000,
-    maxRequests: mode === "path" ? 24 : 90,
-  })) {
+  if (!(await enforceAddressRadarRateLimit(req, res, mode, network))) {
     return undefined;
   }
 
@@ -778,6 +818,12 @@ handler._internal = {
   findPath,
   normalizeAddress,
   normalizeNetwork,
+  resetRateLimiterForTests() {
+    addressRadarRateLimiter = createAddressRadarRateLimiter();
+  },
+  setRateLimiterForTests(limiter) {
+    addressRadarRateLimiter = limiter;
+  },
 };
 
 module.exports = withApiTelemetry("address-radar", handler);

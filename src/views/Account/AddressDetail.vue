@@ -16,6 +16,8 @@
         :token-count="effectiveTokenCount"
         :candidate-data="candidateData"
         :summary-loading="balanceCardsLoading"
+        :tx-count-loading="transactionCountLoading"
+        :token-count-loading="tokenCountLoading"
       />
 
       <div
@@ -460,6 +462,14 @@ const balanceCardsLoading = computed(() => {
   if (assets.value.length > 0) return false;
   const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
   return !hasBalance;
+});
+
+const transactionCountLoading = computed(() => {
+  return (summaryLoading.value || transactionsLoading.value) && effectiveTxCount.value === 0;
+});
+
+const tokenCountLoading = computed(() => {
+  return (summaryLoading.value || assetsLoading.value) && effectiveTokenCount.value === 0;
 });
 
 const showMainnetHint = computed(() => {

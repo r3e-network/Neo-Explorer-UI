@@ -271,6 +271,25 @@ describe("supabaseService metadata", () => {
     expect(result[address]?.nns_domain).toBe("oracle.morpheus.neo");
   });
 
+  it("does not expose an address repeated as its own display name", async () => {
+    const address = "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [{ address, display_name: address, source: "activity", tags: [] }],
+        }),
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTag(address, "mainnet");
+
+    expect(result?.label).toBe("");
+    expect(result?.display_name).toBe("");
+  });
+
   it("collapses duplicated nns domains from metadata payloads", async () => {
     vi.stubGlobal(
       "fetch",

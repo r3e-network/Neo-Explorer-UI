@@ -1,10 +1,9 @@
 import { sha256 } from "ethereum-cryptography/sha256";
 import { base64ToBytes, hexToBytes, strip0x } from "@/utils/neoHelpers";
+import { loadNeoDecompilerClient } from "@/utils/neoDecompilerWebClient";
 
 const textEncoder = new TextEncoder();
 const MAX_COMPILER_BYTES = 64;
-
-let webDecompilerClientPromise = null;
 
 function writeVarInt(out, value) {
   const n = Number(value);
@@ -105,19 +104,8 @@ function extractNefBytes(contractState = {}) {
   return buildNefBytesFromChainState(nef);
 }
 
-async function loadWebDecompilerClient() {
-  if (!webDecompilerClientPromise) {
-    webDecompilerClientPromise = import("neo-decompiler-web").then(async (decompiler) => {
-      const client = await decompiler.init();
-      client.initPanicHook?.();
-      return client;
-    });
-  }
-  return webDecompilerClientPromise;
-}
-
 async function decompileWithWebPackage(nefBytes, manifest = null) {
-  const client = await loadWebDecompilerClient();
+  const client = await loadNeoDecompilerClient();
   const result = client.decompileReport(nefBytes, {
     manifestJson: manifest ? JSON.stringify(manifest) : undefined,
     strictManifest: false,
@@ -142,7 +130,6 @@ export async function decompileContractState(contractState = {}, manifest = null
   try {
     return await decompileWithWebPackage(nefBytes, manifest);
   } catch (error) {
-    webDecompilerClientPromise = null;
     throw new Error(error?.message || "neo-decompiler-web is unavailable.");
   }
 }

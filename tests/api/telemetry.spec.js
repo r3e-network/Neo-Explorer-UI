@@ -60,4 +60,16 @@ describe("api/lib/telemetry", () => {
     expect(captureExceptionMock).toHaveBeenCalledWith(err);
     expect(flushMock).toHaveBeenCalled();
   });
+
+  it("preserves handler metadata used by runtime adapters and tests", async () => {
+    const telemetryModule = await import("../../api/lib/telemetry.js");
+    const withApiTelemetry =
+      telemetryModule.withApiTelemetry || telemetryModule.default?.withApiTelemetry;
+    const handler = vi.fn();
+    handler._internal = { reset: vi.fn() };
+
+    const wrapped = withApiTelemetry("address-radar", handler);
+
+    expect(wrapped._internal).toBe(handler._internal);
+  });
 });

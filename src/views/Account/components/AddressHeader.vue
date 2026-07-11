@@ -38,6 +38,7 @@
           <span
             v-if="publicTag"
             class="inline-flex min-w-0 max-w-full items-center gap-1.5 break-all rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
+            data-testid="public-address-tag"
           >
             <img
               v-if="publicTagLogo"
@@ -95,7 +96,9 @@
           <span v-if="nnsName" class="detail-chip font-bold text-primary-600 dark:text-primary-400">
             {{ nnsName }}
           </span>
-          <span class="detail-chip font-hash break-all">{{ address }}</span>
+          <span class="detail-chip min-w-0 max-w-full break-all font-hash text-[11px] sm:text-xs" data-testid="address-value-chip">
+            {{ address }}
+          </span>
           <CopyButton :text="address" />
           <button
             class="detail-chip hover:text-primary-600 dark:hover:text-primary-300"
@@ -172,14 +175,14 @@
     />
     <DashboardStatCard
       :label="$t('addressDetail.statTransactions')"
-      :value="txCount"
+      :value="txCountLoading ? null : txCount"
       animated
       icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'/></svg>"
       glow-color="#3b82f6"
     />
     <DashboardStatCard
       :label="$t('addressDetail.statTokenHoldings')"
-      :value="tokenCount"
+      :value="tokenCountLoading ? null : tokenCount"
       animated
       icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'/></svg>"
       glow-color="#8b5cf6"
@@ -223,6 +226,8 @@ const props = defineProps({
   tokenCount: { type: Number, default: 0 },
   candidateData: { type: Object, default: null },
   summaryLoading: { type: Boolean, default: false },
+  txCountLoading: { type: Boolean, default: false },
+  tokenCountLoading: { type: Boolean, default: false },
 });
 
 defineEmits(["update:showQr"]);
@@ -279,7 +284,13 @@ const fetchPublicTag = async (addr, isContract) => {
     const tagData = await supabaseService.getAddressTag(lookupTarget, requestNetwork);
     if (resolveNetworkName() !== requestNetwork) return;
     if (tagData) {
-      publicTag.value = tagData.label;
+      const label = String(tagData.label || tagData.display_name || "").trim();
+      const identityKeys = new Set(
+        [addr, lookupTarget, addressToScriptHash(addr)]
+          .map((value) => String(value || "").trim().toLowerCase())
+          .filter(Boolean)
+      );
+      publicTag.value = label && !identityKeys.has(label.toLowerCase()) ? label : null;
       publicTagLogo.value = tagData.logo_url || "";
     }
   } catch (_err) {

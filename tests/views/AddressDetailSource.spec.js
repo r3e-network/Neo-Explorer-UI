@@ -71,6 +71,16 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain("assets.value.length > 0");
   });
 
+  it("keeps transaction and holding counts in a loading state until a source resolves", () => {
+    const detailSource = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+    const headerSource = fs.readFileSync(new URL("../../src/views/Account/components/AddressHeader.vue", import.meta.url), "utf8");
+
+    expect(detailSource).toContain(":tx-count-loading=\"transactionCountLoading\"");
+    expect(detailSource).toContain(":token-count-loading=\"tokenCountLoading\"");
+    expect(headerSource).toContain(":value=\"txCountLoading ? null : txCount\"");
+    expect(headerSource).toContain(":value=\"tokenCountLoading ? null : tokenCount\"");
+  });
+
   it("seeds blockhash from the block height so the Block column links (#10fe)", () => {
     const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
 

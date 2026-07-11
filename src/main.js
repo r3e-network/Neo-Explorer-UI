@@ -8,6 +8,7 @@ import { useTheme } from "@/composables/useTheme";
 import { initWebVitalsTelemetry } from "@/telemetry/webVitals";
 import { explorerQueryClient } from "@/query/client";
 import { isChunkLoadError, triggerChunkReload } from "@/utils/chunkReload";
+import { renderFatalShell } from "@/utils/fatalShell";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
@@ -65,19 +66,6 @@ function setTelemetryCapture(fn) {
 // telemetry (e.g. the router, to stay test-mockable) can still report errors.
 if (typeof globalThis !== "undefined") {
   globalThis.__neoExplorerCaptureError__ = captureGlobal;
-}
-
-function renderFatalShell() {
-  if (typeof document === "undefined") return;
-  const el = document.getElementById("app");
-  if (!el) return;
-  el.innerHTML =
-    '<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;' +
-    'font-family:system-ui,-apple-system,sans-serif;padding:24px;text-align:center;color:#e5e7eb;background:#0b0e14">' +
-    "<div><h1 style=\"font-size:20px;margin:0 0 8px\">Something went wrong</h1>" +
-    '<p style="opacity:.7;margin:0 0 16px;max-width:36ch">The explorer failed to start. This is usually fixed by reloading.</p>' +
-    '<button onclick="window.location.reload()" style="padding:8px 16px;border-radius:8px;border:1px solid #374151;' +
-    'background:#111827;color:#e5e7eb;cursor:pointer">Reload</button></div></div>';
 }
 
 if (typeof window !== "undefined") {

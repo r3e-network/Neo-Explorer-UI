@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  webInit: vi.fn(),
+  loadClient: vi.fn(),
   webDecompileReport: vi.fn(),
   webInitPanicHook: vi.fn(),
 }));
 
-vi.mock("neo-decompiler-web", () => ({
-  init: mocks.webInit,
+vi.mock("@/utils/neoDecompilerWebClient", () => ({
+  loadNeoDecompilerClient: mocks.loadClient,
 }));
 
 function bytesToBase64(bytes) {
@@ -18,7 +18,7 @@ describe("contractDecompiler", () => {
   beforeEach(() => {
     vi.resetModules();
     Object.values(mocks).forEach((mock) => mock.mockReset());
-    mocks.webInit.mockResolvedValue({
+    mocks.loadClient.mockResolvedValue({
       decompileReport: mocks.webDecompileReport,
       initPanicHook: mocks.webInitPanicHook,
     });
@@ -46,8 +46,7 @@ describe("contractDecompiler", () => {
       },
     }, manifest);
 
-    expect(mocks.webInit).toHaveBeenCalledTimes(1);
-    expect(mocks.webInitPanicHook).toHaveBeenCalledTimes(1);
+    expect(mocks.loadClient).toHaveBeenCalledTimes(1);
     expect(mocks.webDecompileReport).toHaveBeenCalledTimes(1);
     const [nefBytes, options] = mocks.webDecompileReport.mock.calls[0];
     expect(nefBytes).toBeInstanceOf(Uint8Array);
@@ -65,7 +64,7 @@ describe("contractDecompiler", () => {
   });
 
   it("reports a clear error when the web decompiler cannot initialize", async () => {
-    mocks.webInit.mockRejectedValueOnce(new Error("missing wasm artifact"));
+    mocks.loadClient.mockRejectedValueOnce(new Error("missing wasm artifact"));
 
     const { decompileContractState } = await import("@/utils/contractDecompiler");
     const rawNef = bytesToBase64([0x4e, 0x45, 0x46, 0x33, 0x00]);

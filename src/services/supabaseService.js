@@ -372,6 +372,12 @@ const normalizeAddressMetadata = (item = {}) => {
   const address = normalizeAddressKey(item.address);
   if (!address) return null;
   const tags = Array.isArray(item.tags) ? item.tags : [];
+  const cleanAlias = (value) => {
+    const alias = String(value || "").trim();
+    return alias.toLowerCase() === address.toLowerCase() ? "" : alias;
+  };
+  const label = cleanAlias(item.label || item.display_name);
+  const displayName = cleanAlias(item.display_name || item.label);
   const nnsDomain = normalizeNnsDomain(item.nns_domain || item.nnsDomain);
   let nnsExpirationMS = Number(
     item.nns_expiration_ms ?? item.nnsExpirationMS ?? item.nns_expiration ?? item.nnsExpiration ?? 0
@@ -388,8 +394,8 @@ const normalizeAddressMetadata = (item = {}) => {
   return {
     ...item,
     address,
-    label: item.label || item.display_name || address,
-    display_name: item.display_name || item.label || address,
+    label,
+    display_name: displayName,
     category: item.category || tags[0] || item.source || null,
     tags,
     nns_domain: nnsDomain,

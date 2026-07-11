@@ -73,6 +73,26 @@ describe("AddressRadarTab", () => {
     expect(wrapper.text()).toContain("0x-out");
   });
 
+  it("shortens long contract hashes in graph labels while preserving the full tooltip", () => {
+    const contractHash = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
+    const wrapper = mountRadar({
+      graph: {
+        nodes: [
+          { id: CENTER.toLowerCase(), address: CENTER, role: "center", transferCount: 1 },
+          { id: ALICE.toLowerCase(), address: ALICE, role: "source", transferCount: 1 },
+        ],
+        edges: [
+          { id: "in", from: ALICE, to: CENTER, count: 1, tokens: [contractHash], txHashes: ["0x-in"] },
+        ],
+        summary: { inboundAccounts: 1, outboundAccounts: 0, transferCount: 1, hiddenCounterparties: 0 },
+      },
+    });
+
+    const edgeLabel = wrapper.get("svg text").text();
+    expect(edgeLabel).toBe("0x03013f...7fccab");
+    expect(wrapper.get("svg title").text()).toContain(contractHash);
+  });
+
   it("searches and renders a multi-hop path between two addresses", async () => {
     const fetchPath = vi.fn(async () => ({
       result: {

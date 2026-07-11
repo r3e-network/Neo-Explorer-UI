@@ -351,7 +351,7 @@ const layoutEdges = computed(() => {
         labelX,
         labelY,
         width: Math.min(8, 2 + Math.log2(count + 1)),
-        label: formatTokens(edge.tokens),
+        label: formatTokens(edge.tokens, true),
         color: edgeColor(edge),
       };
     })
@@ -546,10 +546,18 @@ function shortAddress(value) {
   return `${text.slice(0, 6)}...${text.slice(-4)}`;
 }
 
-function formatTokens(tokens = []) {
+function formatTokenLabel(value, compact) {
+  const label = String(value || "");
+  if (compact && /^0x[0-9a-f]{20,}$/i.test(label)) {
+    return `${label.slice(0, 8)}...${label.slice(-6)}`;
+  }
+  return label;
+}
+
+function formatTokens(tokens = [], compact = false) {
   const list = Array.isArray(tokens) ? tokens.filter(Boolean) : [];
   if (!list.length) return t("addressDetail.radarUnknownToken");
-  const visible = list.slice(0, 2).join(", ");
+  const visible = list.slice(0, 2).map((token) => formatTokenLabel(token, compact)).join(", ");
   return list.length > 2 ? `${visible} +${list.length - 2}` : visible;
 }
 

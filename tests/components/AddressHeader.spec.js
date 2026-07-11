@@ -113,6 +113,40 @@ describe("AddressHeader", () => {
     expect(wrapper.text()).not.toContain("$218,759,366,193.00");
   });
 
+  it("suppresses metadata labels that only repeat the address", async () => {
+    const address = "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh";
+    getAddressTag.mockResolvedValueOnce({
+      address,
+      label: address,
+      display_name: address,
+      logo_url: "",
+    });
+    const wrapper = mount(AddressHeader, {
+      props: {
+        address,
+        isContract: false,
+        showQr: false,
+        neoBalance: "3",
+        gasBalance: "0",
+        txCount: 1,
+        tokenCount: 1,
+        candidateData: null,
+      },
+      global: {
+        stubs: {
+          CopyButton: true,
+          QrcodeVue: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="public-address-tag"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("R3E TEE");
+    expect(wrapper.get('[data-testid="address-value-chip"]').classes()).toContain("text-[11px]");
+  });
+
   it("shows known contract identity for contract address pages", async () => {
     const wrapper = mount(AddressHeader, {
       props: {

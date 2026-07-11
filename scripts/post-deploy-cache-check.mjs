@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+
 const API_BASE = (process.env.TEST_API_URL || "https://api.n3index.dev").replace(/\/+$/, "");
 const WEB_BASE = (process.env.TEST_WEB_URL || "https://www.neo3scan.com").replace(/\/+$/, "");
 const TIMEOUT_MS = Number(process.env.POST_DEPLOY_TIMEOUT_MS || 15000);
+const DECOMPILER_VERSION = JSON.parse(readFileSync(
+  new URL("../node_modules/neo-decompiler-web/package.json", import.meta.url),
+  "utf8",
+)).version;
 
 function fail(message) {
   throw new Error(message);
@@ -27,6 +33,17 @@ async function fetchWithTimeout(url, init = {}) {
         }
       })(),
     };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchBytesWithTimeout(url, init = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    return { response, bytes: new Uint8Array(await response.arrayBuffer()) };
   } finally {
     clearTimeout(timer);
   }
@@ -110,9 +127,47 @@ async function checkWeb() {
   };
 }
 
+async function checkDecompilerAssets() {
+  const assets = [
+    { path: `/assets/pkg/neo_decompiler-${DECOMPILER_VERSION}.js`, type: /javascript/i },
+    { path: `/assets/pkg/neo_decompiler_bg-${DECOMPILER_VERSION}.wasm`, type: /application\/wasm/i },
+  ];
+  const checked = [];
+  for (const asset of assets) {
+    const url = `${WEB_BASE}${asset.path}?v=${encodeURIComponent(DECOMPILER_VERSION)}&attempt=0`;
+    const result = await fetchBytesWithTimeout(url);
+    if (result.response.status !== 200) {
+      fail(`Decompiler asset ${asset.path}: expected HTTP 200, got ${result.response.status}`);
+    }
+    const contentType = header(result.response, "content-type");
+    if (!asset.type.test(contentType)) {
+      fail(`Decompiler asset ${asset.path}: unexpected content-type ${contentType || "<missing>"}`);
+    }
+    const cc = header(result.response, "cache-control");
+    if (!/immutable/i.test(cc) || maxAgeSeconds(cc) < 31536000) {
+      fail(`Decompiler asset ${asset.path}: expected immutable one-year cache, got ${cc || "<missing>"}`);
+    }
+    if (asset.path.endsWith(".js")) {
+      const source = new TextDecoder().decode(result.bytes);
+      if (!source.includes("decompileReport") || !source.includes("initPanicHook")) {
+        fail(`Decompiler asset ${asset.path}: JavaScript bindings are incomplete`);
+      }
+    } else {
+      const magic = result.bytes.subarray(0, 4);
+      if (magic.length !== 4 || magic[0] !== 0 || magic[1] !== 97 || magic[2] !== 115 || magic[3] !== 109) {
+        fail(`Decompiler asset ${asset.path}: invalid WebAssembly magic header`);
+      }
+      await WebAssembly.compile(result.bytes);
+    }
+    checked.push({ path: asset.path, contentType, bytes: result.bytes.length, cacheControl: cc });
+  }
+  return { decompilerVersion: DECOMPILER_VERSION, assets: checked };
+}
+
 async function main() {
   const checks = [];
   checks.push(await checkWeb());
+  checks.push(await checkDecompilerAssets());
   checks.push(await checkRpc());
   checks.push(await checkEdgeCache("/indexer/v1/networks/mainnet/status", {
     label: "mainnet status",

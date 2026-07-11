@@ -138,5 +138,6 @@ module.exports = {
   consumeRateLimit,
   enforceSimpleRateLimit,
   getClientIp,
+  resolveDefaultTrustProxy,
   resetSimpleRateLimitForTests,
 };

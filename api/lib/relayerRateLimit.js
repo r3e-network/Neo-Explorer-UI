@@ -140,6 +140,7 @@ function createInMemoryRateLimiter({ cleanupEvery = 100 } = {}) {
     }
 
     return {
+        isShared: false,
         consume({ key, windowMs, maxRequests, nowMs = Date.now() }) {
             consumeCalls += 1;
             if (consumeCalls % cleanupEvery === 0) {
@@ -192,8 +193,10 @@ function getFirstNonEmpty(env, keys) {
     return '';
 }
 
-function resolveUpstashConfig(env = process.env) {
-    const disabled = String(env?.RELAYER_RATE_LIMIT_DISABLE_SHARED || '').trim() === '1';
+function resolveUpstashConfig(env = process.env, {
+    disableEnvKey = 'RELAYER_RATE_LIMIT_DISABLE_SHARED',
+} = {}) {
+    const disabled = String(env?.[disableEnvKey] || '').trim() === '1';
     if (disabled) return null;
 
     const urlRaw = getFirstNonEmpty(env, ['UPSTASH_REDIS_REST_URL', 'KV_REST_API_URL']);
@@ -323,13 +326,18 @@ function createUpstashRateLimiter({
     };
 }
 
-function createDefaultRateLimiter({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
-    const sharedConfig = resolveUpstashConfig(env);
+function createDefaultRateLimiter({
+    env = process.env,
+    fetchImpl = globalThis.fetch,
+    disableEnvKey = 'RELAYER_RATE_LIMIT_DISABLE_SHARED',
+    failOpenEnvKey = 'RELAYER_RATE_LIMIT_FAIL_OPEN',
+} = {}) {
+    const sharedConfig = resolveUpstashConfig(env, { disableEnvKey });
     if (!sharedConfig) {
         return createInMemoryRateLimiter();
     }
 
-    const failOpen = String(env?.RELAYER_RATE_LIMIT_FAIL_OPEN || '').trim() === '1';
+    const failOpen = String(env?.[failOpenEnvKey] || '').trim() === '1';
 
     return createUpstashRateLimiter({
         ...sharedConfig,
