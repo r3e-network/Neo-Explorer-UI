@@ -282,7 +282,9 @@
                 @retry="loadAll"
               />
             </div>
-            <XBlocksTable v-else :blocks="latestBlocks" dense />
+            <TransitionGroup v-else name="list" tag="div">
+              <XBlockListItem v-for="block in latestBlocks" :key="block.hash || block.index" :block="block" />
+            </TransitionGroup>
           </article>
 
           <article class="etherscan-card overflow-hidden">
@@ -302,7 +304,9 @@
                 @retry="loadAll"
               />
             </div>
-            <XTxTable v-else :transactions="latestTxs" dense />
+            <TransitionGroup v-else name="list" tag="div">
+              <XTxListItem v-for="tx in latestTxs" :key="tx.hash" :tx="tx" />
+            </TransitionGroup>
           </article>
         </div>
 
@@ -324,8 +328,8 @@ import AddNeoxChainButton from "@/components/common/AddNeoxChainButton.vue";
 import AnimatedNumber from "@/components/common/AnimatedNumber.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-import XBlocksTable from "./components/XBlocksTable.vue";
-import XTxTable from "./components/XTxTable.vue";
+import XBlockListItem from "./components/XBlockListItem.vue";
+import XTxListItem from "./components/XTxListItem.vue";
 import XTxChart from "./components/XTxChart.vue";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet, getNeoxLabel, getNeoxRefreshIntervalMs } from "@/utils/neoxEnv";
@@ -607,6 +611,25 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Same list slide animation as the N3 LatestBlocks/LatestTransactions cards. */
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.list-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
 /* Same hero recipe as the N3 HomePage (scoped there, so duplicated here). */
 .hero-section {
   background-image:

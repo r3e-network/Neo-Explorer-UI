@@ -63,11 +63,14 @@ export function formatTimestamp(ms) {
   return new Date(n).toLocaleString();
 }
 
-/** Compact relative time ("12s ago", "3m ago", "5h ago", "2d ago"). */
-export function timeAgo(ms) {
+/**
+ * Compact relative time ("12s ago", "3m ago", "5h ago", "2d ago").
+ * Pass `nowMs` (e.g. from a ticking useNow ref) for live-updating ages.
+ */
+export function timeAgo(ms, nowMs = Date.now()) {
   const n = Number(ms);
   if (!Number.isFinite(n) || n <= 0) return "—";
-  const seconds = Math.max(0, Math.floor((Date.now() - n) / 1000));
+  const seconds = Math.max(0, Math.floor((nowMs - n) / 1000));
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
