@@ -8,7 +8,8 @@
 import { formatUnits, formatGas, shortHash } from "@/utils/neoxFormat";
 
 const MAX_TRANSFER_ITEMS = 2;
-const DEFAULT_TOKEN_DECIMALS = 18;
+// ERC-1155 transfers carry decimals: null — whole units (0), not wei (18).
+const DEFAULT_TOKEN_DECIMALS = 0;
 
 // Blockscout transfer type → chip direction (null for plain transfers).
 function transferDirection(type) {

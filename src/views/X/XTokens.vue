@@ -33,6 +33,7 @@
               :key="tab.id"
               type="button"
               :class="['tab-btn', tab.id === activeType ? 'tab-btn-active' : 'tab-btn-inactive']"
+              :aria-pressed="tab.id === activeType ? 'true' : 'false'"
               @click="setType(tab.id)"
             >
               {{ tab.label }}

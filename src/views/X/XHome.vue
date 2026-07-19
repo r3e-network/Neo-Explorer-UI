@@ -455,6 +455,9 @@ let refreshTimer = null;
 function startAutoRefresh() {
   stopAutoRefresh();
   refreshTimer = setInterval(() => {
+    // Skip refresh work while the tab is hidden; the next visible tick
+    // catches up. Saves a request burst every 6s for backgrounded tabs.
+    if (typeof document !== "undefined" && document.hidden) return;
     loadAll({ silent: true });
   }, getNeoxRefreshIntervalMs());
 }

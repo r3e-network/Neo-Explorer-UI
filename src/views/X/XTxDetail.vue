@@ -58,7 +58,8 @@
       </div>
 
       <!-- Error -->
-      <ErrorState v-else-if="error" :title="tf('neoX.notFound', 'Transaction not found.')" :message="error" @retry="load" />
+      <!-- Transport failure, not a 404 — the not-found state renders separately. -->
+      <ErrorState v-else-if="error" :title="tf('neoX.transactionsErrorTitle', 'Unable to load transactions')" :message="error" @retry="load" />
 
       <!-- Tabbed content -->
       <template v-else-if="tx">
@@ -441,7 +442,8 @@ const tokenAddress = (transfer) => transfer.token?.address || transfer.token?.ad
 const transferAmount = (transfer) => {
   const total = transfer.total || {};
   if (total.value != null) {
-    return formatUnits(total.value, Number(total.decimals ?? transfer.token?.decimals ?? 18));
+    // ERC-1155 has decimals: null — 0 (whole units) is the correct fallback.
+    return formatUnits(total.value, Number(total.decimals ?? transfer.token?.decimals ?? 0));
   }
   if (total.token_id != null) return `#${total.token_id}`;
   return "—";

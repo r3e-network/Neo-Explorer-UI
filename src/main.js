@@ -97,6 +97,10 @@ async function bootstrap() {
 
   // Global Vue error handler — prevents silent failures in components.
   appInstance.config.errorHandler = (err, _instance, info) => {
+    // Never swallow silently: without this, a render error leaves a wedged UI
+    // with zero console output (telemetry-only, and nothing at all when the
+    // telemetry env vars are absent).
+    console.error(`[vue:${info}]`, err);
     captureGlobal(err, { source: "vue", vue: info });
   };
 

@@ -232,6 +232,11 @@ export function getManualChunkName(id) {
   if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")) {
     return "web3auth";
   }
+  if (id.includes("jszip")) {
+    // Lazy-imported by the contract source download; keep it out of vendor so
+    // it only loads when a download is actually triggered.
+    return "jszip";
+  }
   if (id.includes("ethers")) {
     return "ethers";
   }

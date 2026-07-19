@@ -31,6 +31,11 @@ export function useCursorList(fetchPage) {
     item?.address ??
     JSON.stringify(item);
 
+  // After a failed load-more, further sentinel-triggered attempts are ignored
+  // for this long; a manual click after the window retries normally.
+  const MORE_FAILURE_COOLDOWN_MS = 4000;
+  let lastMoreFailureAt = 0;
+
   async function load({ append = false } = {}) {
     const current = ++reqSeq;
     if (controller) controller.abort();
@@ -66,8 +71,20 @@ export function useCursorList(fetchPage) {
       nextCursor.value = page?.nextPageParams || null;
       hasMore.value = Boolean(nextCursor.value);
       error.value = null;
+      lastMoreFailureAt = 0;
     } catch (err) {
-      if (current === reqSeq && err?.name !== "AbortError") error.value = err;
+      if (current === reqSeq && err?.name !== "AbortError") {
+        if (append) {
+          // A transient load-more failure must never wipe pages the user has
+          // already scrolled through: keep items/hasMore intact so the footer
+          // remains a natural retry, and arm a cooldown so an
+          // IntersectionObserver sentinel cannot hot-loop against a dead
+          // upstream.
+          lastMoreFailureAt = Date.now();
+        } else {
+          error.value = err;
+        }
+      }
     } finally {
       if (current === reqSeq) {
         loading.value = false;
@@ -77,6 +94,7 @@ export function useCursorList(fetchPage) {
   }
 
   const loadMore = () => {
+    if (Date.now() - lastMoreFailureAt < MORE_FAILURE_COOLDOWN_MS) return undefined;
     if (hasMore.value && !loadingMore.value) return load({ append: true });
     return undefined;
   };

@@ -8,6 +8,7 @@
         type="button"
         class="tab-btn px-2.5 py-1 text-xs"
         :class="standard === option.key ? 'tab-btn-active' : 'tab-btn-inactive'"
+        :aria-pressed="standard === option.key ? 'true' : 'false'"
         @click="setStandard(option.key)"
       >
         {{ option.label }}

@@ -20,6 +20,7 @@
           type="text"
           class="form-input"
           :placeholder="`${input.name || `arg${i}`} (${input.type})`"
+          :aria-label="`${fn.name}: ${input.name || `arg${i}`} (${input.type})`"
         />
       </div>
 

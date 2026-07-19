@@ -105,7 +105,19 @@ const tf = (key, fallback) => {
   return value === key ? fallback : value;
 };
 
-const { items, loading, loadingMore, error, hasMore, loadMore, refresh } = useCursorList((cursor, ctx) =>
-  accountService.getInternalTransactions(props.address, { net: getNeoxNet(), cursor, signal: ctx.signal })
-);
+// Address internal txns, like address logs, repeat the same per-tx `index`
+// across transactions — synthesize a composite `hash` so useCursorList's
+// dedupe never collapses rows from different parent transactions.
+const { items, loading, loadingMore, error, hasMore, loadMore, refresh } = useCursorList(async (cursor, ctx) => {
+  const page = await accountService.getInternalTransactions(props.address, {
+    net: getNeoxNet(),
+    cursor,
+    signal: ctx.signal,
+  });
+  const rows = (Array.isArray(page.items) ? page.items : []).map((itx) => ({
+    ...itx,
+    hash: `${itx.transactionHash || "?"}:${itx.index}`,
+  }));
+  return { items: rows, nextPageParams: page.nextPageParams };
+});
 </script>

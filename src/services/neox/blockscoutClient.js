@@ -42,8 +42,14 @@ function buildUrl(net, path, params) {
 export async function fetchBlockscout(net, path, { params = {}, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const url = buildUrl(net, path, params);
   const controller = new AbortController();
-  const timer = signal ? null : setTimeout(() => controller.abort(), timeoutMs);
-  const activeSignal = signal || controller.signal;
+  // The timeout stays armed even with an external signal: forward its abort
+  // into the local controller so a stalled upstream can never hang a caller.
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  const activeSignal = controller.signal;
 
   try {
     const response = await fetch(url, {

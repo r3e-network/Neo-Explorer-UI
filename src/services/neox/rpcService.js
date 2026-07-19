@@ -43,8 +43,13 @@ export async function rpcCall(method, params = [], opts = {}) {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const controller = new AbortController();
-  const timer = opts.signal ? null : setTimeout(() => controller.abort(), timeoutMs);
-  const activeSignal = opts.signal || controller.signal;
+  // Timeout stays armed even with an external signal (abort is forwarded).
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (opts.signal) {
+    if (opts.signal.aborted) controller.abort();
+    else opts.signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  const activeSignal = controller.signal;
 
   let json;
   try {

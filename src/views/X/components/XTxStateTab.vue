@@ -98,7 +98,9 @@ const {
   transactionService.getStateChanges(props.hash, { net: getNeoxNet(), cursor, signal }),
 );
 
-const tokenDecimals = (change) => Number(change.token?.decimals ?? 18);
+// ERC-1155 carries decimals: null — fall back to 0 (whole units), not 18,
+// matching XTokenTransfersTab/XAddrTransfersTab.
+const tokenDecimals = (change) => Number(change.token?.decimals ?? 0);
 const tokenSymbol = (change) => change.token?.symbol || "";
 
 function typeLabel(change) {

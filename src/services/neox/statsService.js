@@ -30,8 +30,13 @@ async function fetchNeoxStats(net, path, { params = {}, signal, timeoutMs = STAT
   const url = `/neox-stats/${resolveNeoxNetName(net)}/${cleanPath}${qs ? `?${qs}` : ""}`;
 
   const controller = new AbortController();
-  const timer = signal ? null : setTimeout(() => controller.abort(), timeoutMs);
-  const activeSignal = signal || controller.signal;
+  // Timeout stays armed even with an external signal (abort is forwarded).
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  const activeSignal = controller.signal;
 
   try {
     const response = await fetch(url, {

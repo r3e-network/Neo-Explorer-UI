@@ -72,7 +72,7 @@
       <!-- ERROR / NOT FOUND -->
       <ErrorState
         v-else-if="error"
-        :title="tf('neoX.notFound', 'Not found.')"
+        :title="tf('errors.generic', 'Something went wrong. Please try again.')"
         :message="tf('errors.loadFailed', 'Failed to load token.')"
         @retry="load"
       />

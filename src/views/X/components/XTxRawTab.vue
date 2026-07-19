@@ -10,6 +10,7 @@
           type="button"
           class="tab-btn"
           :class="mode === m.key ? 'tab-btn-active' : 'tab-btn-inactive'"
+          :aria-pressed="mode === m.key ? 'true' : 'false'"
           @click="mode = m.key"
         >
           {{ m.label }}

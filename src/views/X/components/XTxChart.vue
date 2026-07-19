@@ -24,7 +24,7 @@
     </div>
     <div v-else class="p-4">
       <div class="h-[280px]">
-        <canvas ref="chartCanvas" :aria-label="tf('neoX.dailyTransactions', 'Daily Transactions')"></canvas>
+        <canvas ref="chartCanvas" role="img" :aria-label="tf('neoX.dailyTransactions', 'Daily Transactions')"></canvas>
       </div>
     </div>
   </div>

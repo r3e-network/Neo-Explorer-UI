@@ -91,7 +91,9 @@
       </div>
 
       <!-- Error -->
-      <ErrorState v-else-if="error" :title="tf('neoX.notFound', 'Block not found.')" :message="error" @retry="load" />
+      <!-- The error branch only fires on transport failure — a true 404 renders the
+           not-found empty state below, so title this as an outage, not "not found". -->
+      <ErrorState v-else-if="error" :title="tf('neoX.blocksErrorTitle', 'Unable to load blocks')" :message="error" @retry="load" />
 
       <div v-else-if="block" class="space-y-6">
         <!-- Metrics -->

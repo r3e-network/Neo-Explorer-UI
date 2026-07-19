@@ -8,6 +8,7 @@
         type="button"
         class="tab-btn px-2.5 py-1 text-xs"
         :class="filter === option.key ? 'tab-btn-active' : 'tab-btn-inactive'"
+        :aria-pressed="filter === option.key ? 'true' : 'false'"
         @click="setFilter(option.key)"
       >
         {{ option.label }}

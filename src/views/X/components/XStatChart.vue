@@ -42,7 +42,7 @@
     </div>
     <div v-else class="p-4">
       <div class="h-[280px]">
-        <canvas ref="chartCanvas" :aria-label="title"></canvas>
+        <canvas ref="chartCanvas" role="img" :aria-label="title"></canvas>
       </div>
     </div>
   </div>
@@ -129,7 +129,9 @@ function buildChartSeries() {
 async function createChart() {
   if (!chartCanvas.value || visiblePoints.value.length === 0) return;
   const Chart = await getChartConstructor();
-  if (!chartCanvas.value) return;
+  // Re-check after the await: a concurrent renderChart may have created the
+  // instance already — a second new Chart on the same canvas would leak it.
+  if (!chartCanvas.value || chartInstance) return;
   const ctx = chartCanvas.value.getContext("2d");
   const colors = getChartColors();
   const { labels, values } = buildChartSeries();

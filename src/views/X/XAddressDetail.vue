@@ -94,7 +94,7 @@
       <!-- ERROR -->
       <ErrorState
         v-else-if="error"
-        :title="tf('neoX.notFound', 'Not found.')"
+        :title="tf('errors.generic', 'Something went wrong. Please try again.')"
         :message="tf('errors.loadFailed', 'Failed to load address.')"
         @retry="loadOverview"
       />
@@ -316,14 +316,18 @@ async function loadOverview() {
   error.value = false;
   try {
     const net = getNeoxNet();
-    const [overview, counts] = await Promise.allSettled([
-      accountService.getByAddress(address, { net }),
-      accountService.getCounters(address, { net }),
-    ]);
+    // Counters run detached: their warm-up retry can take ~1.5s and must not
+    // hold the whole page in skeleton — the stat cards show placeholders and
+    // fill in when the counters land.
+    accountService
+      .getCounters(address, { net })
+      .then((counts) => {
+        if (current === reqId) counters.value = counts;
+      })
+      .catch(() => {});
+    const overview = await accountService.getByAddress(address, { net });
     if (current !== reqId) return;
-    account.value = overview.status === "fulfilled" ? overview.value : null;
-    counters.value = counts.status === "fulfilled" ? counts.value : null;
-    error.value = overview.status === "rejected";
+    account.value = overview;
   } catch (_err) {
     if (current === reqId) error.value = true;
   } finally {
