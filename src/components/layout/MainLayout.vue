@@ -5,7 +5,7 @@
       <main class="page-shell w-full flex-1">
         <router-view v-slot="{ Component, route }">
           <keep-alive include="HomePage">
-            <component :is="Component" :key="`${route.fullPath}:${activeNetwork}`" />
+            <component :is="Component" :key="`${route.fullPath}:${activeNetwork}:${activeNeoxNet}`" />
           </keep-alive>
         </router-view>
       </main>
@@ -103,9 +103,13 @@ import {
   getCurrentEnv,
   getNetworkLabel,
 } from "@/utils/env";
+import { getNeoxNet, getNeoxLabel } from "@/utils/neoxEnv";
 
 const showBackToTop = ref(false);
 const activeNetwork = ref(getCurrentEnv());
+// Neo X net is a separate axis; include it in the router-view :key so a Neo X
+// main<->test switch (same route, unchanged activeNetwork) still forces remount.
+const activeNeoxNet = ref(getNeoxNet());
 
 const isNetworkSwitching = ref(false);
 const networkToastVisible = ref(false);
@@ -134,8 +138,11 @@ function scrollToTop() {
 }
 
 function handleNetworkChange(event) {
-  const nextEnv = event?.detail?.env || getCurrentEnv();
-  const nextLabel = getNetworkLabel(nextEnv);
+  // A Neo X switch carries `detail.neoxNet`; an N3 switch carries `detail.env`.
+  const isNeoxSwitch = Boolean(event?.detail?.neoxNet);
+  const nextLabel = isNeoxSwitch
+    ? getNeoxLabel(event.detail.neoxNet)
+    : getNetworkLabel(event?.detail?.env || getCurrentEnv());
 
   clearSwitchTimers();
 
@@ -143,7 +150,11 @@ function handleNetworkChange(event) {
   networkToastVisible.value = true;
   networkToastMessage.value = `Switching to ${nextLabel}...`;
 
-  activeNetwork.value = nextEnv;
+  if (isNeoxSwitch) {
+    activeNeoxNet.value = getNeoxNet();
+  } else {
+    activeNetwork.value = event?.detail?.env || getCurrentEnv();
+  }
 
   switchTimer = setTimeout(() => {
     isNetworkSwitching.value = false;

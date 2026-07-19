@@ -10,6 +10,9 @@
               {{ $t("homePage.heroTitle") }}
             </h1>
             <p class="mt-2 text-sm text-white/70">{{ $t("homePage.heroSubtitle") }}</p>
+            <div class="mt-4 flex justify-center">
+              <ChainSwitchTabs />
+            </div>
             <div class="relative z-30 mt-6">
               <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
             </div>
@@ -74,6 +77,7 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";
 import PageHero from "@/components/common/PageHero.vue";
+import ChainSwitchTabs from "@/components/common/ChainSwitchTabs.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";

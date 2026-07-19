@@ -87,6 +87,44 @@
     </li>
     <li
       class="nav-dropdown group"
+      @mouseenter="$emit('open-dropdown', 'neox')"
+      @mouseleave="$emit('close-dropdown', 'neox')"
+      @focusout="handleFocusOut('neox')"
+    >
+      <button
+        class="nav-link"
+        aria-label="Neox menu"
+        aria-haspopup="true"
+        :aria-expanded="activeDropdown === 'neox'"
+        @click="$emit(activeDropdown === 'neox' ? 'close-dropdown' : 'open-dropdown', 'neox')"
+        @keydown.enter.prevent="$emit(activeDropdown === 'neox' ? 'close-dropdown' : 'open-dropdown', 'neox')"
+        @keydown.space.prevent="$emit(activeDropdown === 'neox' ? 'close-dropdown' : 'open-dropdown', 'neox')"
+        @keydown.escape="$emit('close-dropdown', 'neox')"
+      >
+        Neo X
+        <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+      <div
+        v-show="activeDropdown === 'neox'"
+        class="dropdown-panel"
+        @keydown.escape="$emit('close-dropdown', 'neox')"
+      >
+        <router-link to="/x" class="dropdown-link">{{ $t("nav.home") }}</router-link>
+        <router-link to="/x/blocks" class="dropdown-link">{{ $t("nav.blocks") }}</router-link>
+        <router-link to="/x/transactions" class="dropdown-link">{{ $t("nav.transactions") }}</router-link>
+        <router-link to="/x/tokens" class="dropdown-link">{{ $t("nav.tokens") }}</router-link>
+        <router-link to="/x/contracts" class="dropdown-link">{{ $t("nav.contracts") }}</router-link>
+        <router-link to="/x/accounts" class="dropdown-link">{{ $t("nav.accounts") }}</router-link>
+      </div>
+    </li>
+    <li
+      class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'resources')"
       @mouseleave="$emit('close-dropdown', 'resources')"
       @focusout="handleFocusOut('resources')"

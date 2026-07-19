@@ -89,6 +89,19 @@ const MempoolTool = lazyLoad(() => import("../views/Tools/MempoolTool.vue"));
 const NetworkAlertsTool = lazyLoad(() => import("../views/Tools/NetworkAlertsTool.vue"));
 const AbstractAccountTool = lazyLoad(() => import("../views/Tools/AbstractAccountTool.vue"));
 
+// Neo X (EVM) module — a parallel /x route tree, Blockscout-backed. Detail
+// views are EVM-native (not adaptations of the NeoVM N3 views).
+const XHome = lazyLoad(() => import("../views/X/XHome.vue"));
+const XBlocks = lazyLoad(() => import("../views/X/XBlocks.vue"));
+const XBlockDetail = lazyLoad(() => import("../views/X/XBlockDetail.vue"));
+const XTransactions = lazyLoad(() => import("../views/X/XTransactions.vue"));
+const XTxDetail = lazyLoad(() => import("../views/X/XTxDetail.vue"));
+const XAddressDetail = lazyLoad(() => import("../views/X/XAddressDetail.vue"));
+const XTokens = lazyLoad(() => import("../views/X/XTokens.vue"));
+const XTokenDetail = lazyLoad(() => import("../views/X/XTokenDetail.vue"));
+const XContracts = lazyLoad(() => import("../views/X/XContracts.vue"));
+const XAccounts = lazyLoad(() => import("../views/X/XAccounts.vue"));
+
 const routes = [
   {
     path: "/",
@@ -469,6 +482,66 @@ const routes = [
         name: "search",
         meta: { titleKey: "pageTitles.searchResults" },
         component: Search,
+      },
+      {
+        path: "/x",
+        name: "xHome",
+        meta: { titleKey: "pageTitles.xHome" },
+        component: XHome,
+      },
+      {
+        path: "/x/blocks",
+        name: "xBlocks",
+        meta: { titleKey: "pageTitles.xBlocks" },
+        component: XBlocks,
+      },
+      {
+        path: "/x/block-info/:hash",
+        name: "xBlockDetail",
+        meta: { titleKey: "pageTitles.xBlockDetail" },
+        component: XBlockDetail,
+      },
+      {
+        path: "/x/transactions",
+        name: "xTransactions",
+        meta: { titleKey: "pageTitles.xTransactions" },
+        component: XTransactions,
+      },
+      {
+        path: "/x/tx/:txhash",
+        name: "xTxDetail",
+        meta: { titleKey: "pageTitles.xTxDetail" },
+        component: XTxDetail,
+      },
+      {
+        path: "/x/address/:addr",
+        name: "xAddress",
+        meta: { titleKey: "pageTitles.xAddress" },
+        component: XAddressDetail,
+      },
+      {
+        path: "/x/tokens",
+        name: "xTokens",
+        meta: { titleKey: "pageTitles.xTokens" },
+        component: XTokens,
+      },
+      {
+        path: "/x/token/:hash",
+        name: "xToken",
+        meta: { titleKey: "pageTitles.xToken" },
+        component: XTokenDetail,
+      },
+      {
+        path: "/x/contracts",
+        name: "xContracts",
+        meta: { titleKey: "pageTitles.xContracts" },
+        component: XContracts,
+      },
+      {
+        path: "/x/accounts",
+        name: "xAccounts",
+        meta: { titleKey: "pageTitles.xAccounts" },
+        component: XAccounts,
       },
       {
         path: "/:pathMatch(.*)*",

@@ -60,6 +60,16 @@ const ROUTE_AUDIT_EVIDENCE = Object.freeze({
   txExecutionTrace: ["tests/views/TxExecutionTraceSource.spec.js", "browser-render-audit"],
   search: ["tests/utils/searchRouting.spec.js", "browser-render-audit"],
   notFound: ["browser-render-audit", "src/views/NotFound/PageNotFound.vue source audit"],
+  xHome: ["tests/adapters/neox.spec.js", "src/views/X/XHome.vue source audit"],
+  xBlocks: ["tests/adapters/neox.spec.js", "src/views/X/XBlocks.vue source audit"],
+  xBlockDetail: ["tests/adapters/neox.spec.js", "src/views/X/XBlockDetail.vue source audit"],
+  xTransactions: ["tests/adapters/neox.spec.js", "src/views/X/XTransactions.vue source audit"],
+  xTxDetail: ["tests/adapters/neox.spec.js", "src/views/X/XTxDetail.vue source audit"],
+  xAddress: ["tests/adapters/neox.spec.js", "src/views/X/XAddressDetail.vue source audit"],
+  xTokens: ["tests/adapters/neox.spec.js", "src/views/X/XTokens.vue source audit"],
+  xToken: ["tests/adapters/neox.spec.js", "src/views/X/XTokenDetail.vue source audit"],
+  xContracts: ["src/views/X/XContracts.vue source audit"],
+  xAccounts: ["src/views/X/XAccounts.vue source audit"],
 });
 
 describe("Explorer route audit coverage", () => {

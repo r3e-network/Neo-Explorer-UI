@@ -8,7 +8,7 @@
       :neo-price-change="neoPriceChange"
       :price-unavailable="priceUnavailable"
       :current-network-label="currentNetworkLabel"
-      :current-network="currentNetwork"
+      :current-network="activeSelectionId"
       :networks="NETWORKS"
       :network-dropdown-open="networkDropdownOpen"
       @select-network="selectNetwork"
@@ -234,6 +234,12 @@ import {
   getNetworkLabel,
   setCurrentEnv,
 } from "@/utils/env";
+import {
+  NEOX_NETWORK_OPTIONS,
+  getNeoxNet,
+  setNeoxNet,
+  getNeoxLabel,
+} from "@/utils/neoxEnv";
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
 import { connectedWalletProvider, walletNetworkError } from "@/utils/walletState";
 import { truncateHash } from "@/utils/addressFormat";
@@ -260,7 +266,11 @@ const {
   clearChatSession,
 } = useChatSession();
 
-const NETWORKS = NETWORK_OPTIONS;
+// Combined chain switcher options: N3 (mainnet/testnet) + Neo X (mainnet/testnet).
+const NETWORKS = [
+  ...NETWORK_OPTIONS.map((option) => ({ ...option, chain: "n3" })),
+  ...NEOX_NETWORK_OPTIONS,
+];
 
 let searchServiceModulePromise = null;
 
@@ -277,10 +287,18 @@ const gasPriceChange = ref(0);
 const priceUnavailable = ref(false);
 
 const currentNetwork = ref(getCurrentEnv());
+const activeNeoxNet = ref(getNeoxNet());
 const walletLoading = ref(false);
 const chatNotificationsOpen = ref(false);
 
-const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
+// The chain is derived from the route (/x → Neo X). The switcher highlights and
+// labels the active selection accordingly, while `currentNetwork` stays the N3
+// env for wallet/validation logic.
+const isNeoxRoute = computed(() => String(route.path || "").startsWith("/x"));
+const activeSelectionId = computed(() => (isNeoxRoute.value ? activeNeoxNet.value : currentNetwork.value));
+const currentNetworkLabel = computed(() =>
+  isNeoxRoute.value ? getNeoxLabel(activeNeoxNet.value) : getNetworkLabel(currentNetwork.value)
+);
 const walletButtonLabel = computed(() => {
   if (!connectedAccount.value) return t("header.connectWallet");
   return truncateHash(connectedAccount.value, 6, 4);
@@ -522,20 +540,38 @@ async function disconnectCurrentWallet() {
 }
 
 function selectNetwork(net) {
+  networkDropdownOpen.value = false;
+  activeDropdown.value = null;
+  mobileMenuOpen.value = false;
+
+  if (net.chain === "neox") {
+    // Neo X: set the Neo X net and route into the /x tree.
+    activeNeoxNet.value = setNeoxNet(net.id);
+    if (!isNeoxRoute.value) {
+      router.push("/x");
+    }
+    return;
+  }
+
+  // Neo N3: set the N3 env and, if currently in the /x tree, route back.
   const previousNetwork = currentNetwork.value;
   const nextNetwork = setCurrentEnv(net.id);
-
   currentNetwork.value = nextNetwork;
-  networkDropdownOpen.value = false;
 
+  if (isNeoxRoute.value) {
+    router.push("/homepage");
+  }
   if (nextNetwork !== previousNetwork) {
-    activeDropdown.value = null;
-    mobileMenuOpen.value = false;
     validateConnectedWalletNetwork();
   }
 }
 
 function handleNetworkChange(event) {
+  // Neo X switches carry `detail.neoxNet`; N3 switches carry `detail.env`.
+  if (event?.detail?.neoxNet) {
+    activeNeoxNet.value = event.detail.neoxNet;
+    return;
+  }
   currentNetwork.value = event?.detail?.env || getCurrentEnv();
   validateConnectedWalletNetwork();
 }
