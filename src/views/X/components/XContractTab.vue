@@ -40,6 +40,36 @@
         <span v-if="verifiedAtDisplay" class="badge-soft">
           {{ tf("neoX.verifiedAt", "Verified") }} {{ verifiedAtDisplay }}
         </span>
+
+        <span class="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
+            :disabled="downloading"
+            @click="onDownloadSources"
+          >
+            <svg v-if="!downloading" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" />
+            </svg>
+            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            {{ tf("neoX.downloadSources", "Download") }}
+          </button>
+          <a
+            v-if="remixUrl"
+            :href="remixUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            {{ tf("neoX.openInRemix", "Open in Remix") }}
+          </a>
+        </span>
       </div>
 
       <!-- Source files -->
@@ -169,6 +199,7 @@ import CopyButton from "@/components/common/CopyButton.vue";
 import XReadContract from "./XReadContract.vue";
 import { formatInt } from "@/utils/neoxFormat";
 import { disassemble } from "@/utils/evmDisasm";
+import { buildRemixUrl, downloadContractSources } from "@/utils/contractExport";
 
 const props = defineProps({
   address: { type: String, required: true },
@@ -305,6 +336,22 @@ const abiJson = computed(() => {
     return "";
   }
 });
+
+const downloading = ref(false);
+
+// Null when unverified or the flattened source exceeds the URL size guard —
+// the button simply hides; the ZIP download remains the lossless path.
+const remixUrl = computed(() => buildRemixUrl(contract.value));
+
+async function onDownloadSources() {
+  if (downloading.value || !contract.value) return;
+  downloading.value = true;
+  try {
+    await downloadContractSources(contract.value, props.address);
+  } finally {
+    downloading.value = false;
+  }
+}
 
 const verifiedAtDisplay = computed(() => {
   const raw = contract.value?.verified_at;

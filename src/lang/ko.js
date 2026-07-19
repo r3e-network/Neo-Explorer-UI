@@ -170,6 +170,8 @@ const ko = {
     parentHash: "부모 해시",
     size: "크기",
     viewAll: "전체 보기",
+    downloadSources: "다운로드",
+    openInRemix: "Remix에서 열기",
     chartsSubtitle: "Neo X 네트워크 활동 및 리소스 통계",
     chartsBreadcrumb: "차트",
     chartRange90d: "90일",

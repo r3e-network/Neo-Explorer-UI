@@ -170,6 +170,8 @@ const zh = {
     parentHash: "父区块哈希",
     size: "大小",
     viewAll: "查看全部",
+    downloadSources: "下载源码",
+    openInRemix: "在 Remix 打开",
     chartsSubtitle: "Neo X 网络活动与资源统计",
     chartsBreadcrumb: "图表",
     chartRange90d: "90天",

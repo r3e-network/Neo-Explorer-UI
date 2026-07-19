@@ -170,6 +170,8 @@ const ja = {
     parentHash: "親ハッシュ",
     size: "サイズ",
     viewAll: "すべて表示",
+    downloadSources: "ダウンロード",
+    openInRemix: "Remix で開く",
     chartsSubtitle: "Neo X のネットワーク活動とリソース統計",
     chartsBreadcrumb: "チャート",
     chartRange90d: "90日",

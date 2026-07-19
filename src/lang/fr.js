@@ -170,6 +170,8 @@ const fr = {
     parentHash: "Hash parent",
     size: "Taille",
     viewAll: "Voir tout",
+    downloadSources: "Télécharger",
+    openInRemix: "Ouvrir dans Remix",
     chartsSubtitle: "Statistiques d'activité et de ressources du réseau Neo X",
     chartsBreadcrumb: "Graphiques",
     chartRange90d: "90j",

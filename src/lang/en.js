@@ -170,6 +170,8 @@ const en = {
     parentHash: "Parent Hash",
     size: "Size",
     viewAll: "View All",
+    downloadSources: "Download",
+    openInRemix: "Open in Remix",
     chartsSubtitle: "Network activity and resource statistics for Neo X",
     chartsBreadcrumb: "Charts",
     chartRange90d: "90d",
