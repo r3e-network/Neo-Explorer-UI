@@ -45,6 +45,7 @@
     "ethereum-cryptography": "^3.2.0",
     "ethers": "^6.16.0",
     "highlight.js": "^11.11.1",
+    "highlightjs-solidity": "^2.0.6",
     "neo-decompiler-web": "^0.11.0",
     "pg": "^8.20.0",
     "posthog-js": "^1.363.5",

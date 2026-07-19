@@ -53,7 +53,8 @@
             <div class="mb-2 flex justify-end">
               <CopyButton :text="contract.source_code" size="sm" />
             </div>
-            <pre class="panel-muted overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash">{{ contract.source_code }}</pre>
+            <!-- eslint-disable-next-line vue/no-v-html -- hljs output over escaped source -->
+            <pre class="hljs overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash" v-html="highlighted.main"></pre>
           </div>
         </CollapsibleSection>
 
@@ -66,7 +67,8 @@
             <div class="mb-2 flex justify-end">
               <CopyButton :text="source.source_code || ''" size="sm" />
             </div>
-            <pre class="panel-muted overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash">{{ source.source_code }}</pre>
+            <!-- eslint-disable-next-line vue/no-v-html -- hljs output over escaped source -->
+            <pre class="hljs overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash" v-html="highlighted.additional[i] ?? escapeHtml(source.source_code || '')"></pre>
           </div>
         </CollapsibleSection>
 
@@ -76,7 +78,8 @@
             <div class="mb-2 flex justify-end">
               <CopyButton :text="abiJson" size="sm" />
             </div>
-            <pre class="panel-muted overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash">{{ abiJson }}</pre>
+            <!-- eslint-disable-next-line vue/no-v-html -- hljs output over escaped source -->
+            <pre class="hljs overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash" v-html="highlighted.abi"></pre>
           </div>
         </CollapsibleSection>
 
@@ -154,6 +157,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import "highlight.js/styles/github-dark.css";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { contractService } from "@/services/neox";
 import { getNeoxNet } from "@/utils/neoxEnv";
@@ -180,7 +184,85 @@ const contract = ref(null);
 const loading = ref(false);
 const error = ref(false);
 const disasm = ref(null);
+// Highlighted HTML per pane; starts as escaped plaintext, upgraded async once
+// the (lazy) highlighter chunk loads. Mirrors ContractSourceCodePanel.vue.
+const highlighted = ref({ main: "", additional: [], abi: "" });
 let reqId = 0;
+
+let highlighter = null;
+let highlighterPromise = null;
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function loadHighlighter() {
+  if (highlighter) return highlighter;
+  if (!highlighterPromise) {
+    highlighterPromise = Promise.all([
+      import("highlight.js/lib/core"),
+      import("highlightjs-solidity"),
+      import("highlight.js/lib/languages/json"),
+    ]).then(([coreMod, solidityMod, json]) => {
+      const runtime = coreMod.default;
+      [
+        ["solidity", solidityMod.solidity],
+        ["yul", solidityMod.yul],
+        ["json", json.default],
+      ].forEach(([name, language]) => {
+        if (!runtime.getLanguage(name)) runtime.registerLanguage(name, language);
+      });
+      highlighter = runtime;
+      return runtime;
+    });
+  }
+  return highlighterPromise;
+}
+
+// Blockscout `language` → registered hljs grammar. Vyper has no hljs grammar;
+// fall back to escaped plaintext rather than mis-highlighting it.
+function sourceLanguage() {
+  const lang = String(contract.value?.language || "solidity").toLowerCase();
+  if (lang === "solidity") return "solidity";
+  if (lang === "yul") return "yul";
+  return "plaintext";
+}
+
+async function highlightCode(code = "", language = "plaintext") {
+  const escaped = escapeHtml(code);
+  if (!code || language === "plaintext") return escaped;
+  try {
+    const runtime = await loadHighlighter();
+    return runtime.highlight(code, { language, ignoreIllegals: true }).value;
+  } catch {
+    return escaped;
+  }
+}
+
+async function refreshHighlights(current) {
+  const src = contract.value;
+  if (!src) return;
+  const lang = sourceLanguage();
+  // Escaped placeholders render immediately; highlighted HTML replaces them
+  // when the hljs chunk resolves (unless a newer load superseded this one).
+  highlighted.value = {
+    main: escapeHtml(src.source_code || ""),
+    additional: additionalSources.value.map((s) => escapeHtml(s.source_code || "")),
+    abi: escapeHtml(abiJson.value),
+  };
+  const [main, additional, abi] = await Promise.all([
+    highlightCode(src.source_code || "", lang),
+    Promise.all(additionalSources.value.map((s) => highlightCode(s.source_code || "", lang))),
+    highlightCode(abiJson.value, "json"),
+  ]);
+  if (current !== reqId) return;
+  highlighted.value = { main, additional, abi };
+}
 
 // Deferred so a large contract never blocks the tab render: the bytecode is
 // only disassembled the first time the collapsible section is interacted with.
@@ -200,6 +282,7 @@ async function load() {
     const data = await contractService.getSmartContract(props.address, { net: getNeoxNet() });
     if (current !== reqId) return;
     contract.value = data;
+    refreshHighlights(current);
   } catch (_err) {
     if (current === reqId) error.value = true;
   } finally {
