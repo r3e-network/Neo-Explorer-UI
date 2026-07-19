@@ -8,6 +8,11 @@ const DEFAULT_RPC_PROXY_TARGET = "https://rpc.n3index.dev";
 const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testnet1.neo.coz.io";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
+// Neo X (Blockscout v2) explorer upstreams. In production these go through the
+// api/neox/* serverless proxy; in dev the serverless function does not run, so
+// we proxy straight to the upstream here.
+const DEFAULT_NEOX_MAINNET_PROXY_TARGET = "https://xexplorer.neo.org";
+const DEFAULT_NEOX_TESTNET_PROXY_TARGET = "https://xt4scan.ngd.network";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";
 const DEV_PRICE_CACHE_TTL_MS = 60 * 1000;
@@ -339,6 +344,8 @@ export default defineConfig(({ mode }) => {
   const testnetRpcTarget = env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET;
   const indexerTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
   const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
+  const neoxMainnetTarget = env.VITE_NEOX_MAINNET_PROXY_TARGET || DEFAULT_NEOX_MAINNET_PROXY_TARGET;
+  const neoxTestnetTarget = env.VITE_NEOX_TESTNET_PROXY_TARGET || DEFAULT_NEOX_TESTNET_PROXY_TARGET;
 
   return {
     plugins: [
@@ -380,6 +387,8 @@ export default defineConfig(({ mode }) => {
         "/api/testnet": { target: indexerTarget, changeOrigin: true, rewrite: () => "/testnet" },
         "/rest/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/mainnet/, "/rest/v1") },
         "/rest/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1") },
+        "/neox/mainnet": { target: neoxMainnetTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox\/mainnet/, "/api/v2") },
+        "/neox/testnet": { target: neoxTestnetTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox\/testnet/, "/api/v2") },
       },
     },
     optimizeDeps: {

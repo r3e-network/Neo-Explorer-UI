@@ -133,7 +133,8 @@ describe("endpoint defaults", () => {
     expect(routeDest("/data/testnet/(.*)")).toBe(
       "https://api.n3index.dev/testnet/$1"
     );
-    expect(routeDest("/:path((?!api/|rpc/|bpi/|indexer/|data/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
+    expect(routeDest("/neox/(.*)")).toBe("/api/neox/$1");
+    expect(routeDest("/:path((?!api/|rpc/|bpi/|indexer/|data/|neox/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

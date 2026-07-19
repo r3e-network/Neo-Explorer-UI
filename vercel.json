@@ -174,7 +174,11 @@
       "destination": "https://api.n3index.dev/rest/v1/$1"
     },
     {
-      "source": "/:path((?!api/|rpc/|bpi/|indexer/|data/|assets/|img/|.*\\..*).*)",
+      "source": "/neox/(.*)",
+      "destination": "/api/neox/$1"
+    },
+    {
+      "source": "/:path((?!api/|rpc/|bpi/|indexer/|data/|neox/|assets/|img/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
