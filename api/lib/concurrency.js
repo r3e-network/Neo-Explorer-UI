@@ -17,9 +17,8 @@ async function runWithConcurrency(items, worker, concurrency) {
   const results = new Array(items.length);
   let cursor = 0;
   const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (true) {
+    while (cursor < items.length) {
       const idx = cursor++;
-      if (idx >= items.length) return;
       try {
         results[idx] = await worker(items[idx], idx);
       } catch (e) {

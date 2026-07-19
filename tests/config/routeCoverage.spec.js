@@ -70,6 +70,7 @@ const ROUTE_AUDIT_EVIDENCE = Object.freeze({
   xToken: ["tests/adapters/neox.spec.js", "src/views/X/XTokenDetail.vue source audit"],
   xContracts: ["src/views/X/XContracts.vue source audit"],
   xAccounts: ["src/views/X/XAccounts.vue source audit"],
+  xCharts: ["src/views/X/XCharts.vue source audit"],
 });
 
 describe("Explorer route audit coverage", () => {

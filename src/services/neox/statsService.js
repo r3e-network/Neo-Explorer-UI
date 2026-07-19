@@ -1,14 +1,69 @@
 // Neo X stats service — normalizes the Blockscout /stats payload for the
-// home overview and list headline counts.
+// home overview and list headline counts, plus the standalone stats
+// microservice (charts + counters) behind the /neox-stats proxy.
 
+import { SourceUnavailableError } from "@/adapters/source";
 import { fetchBlockscout } from "./blockscoutClient";
-import { getNeoxNet } from "@/utils/neoxEnv";
+import { getNeoxNet, resolveNeoxNetName } from "@/utils/neoxEnv";
 
 const netOf = (opts) => (typeof opts === "string" ? opts : opts?.net) || getNeoxNet();
+
+const STATS_TIMEOUT_MS = 8000;
 
 function toNum(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+}
+
+// Local transport for the stats microservice. Mirrors blockscoutClient's
+// fetch/timeout/error conventions but targets the /neox-stats/<net> proxy
+// prefix (api/neox-stats/[...path].js in prod, vite server.proxy in dev), so
+// it cannot reuse fetchBlockscout, whose prefix is /neox/<net>.
+async function fetchNeoxStats(net, path, { params = {}, signal, timeoutMs = STATS_TIMEOUT_MS } = {}) {
+  const cleanPath = String(path || "").replace(/^\/+/, "");
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === "") continue;
+    search.append(key, String(value));
+  }
+  const qs = search.toString();
+  const url = `/neox-stats/${resolveNeoxNetName(net)}/${cleanPath}${qs ? `?${qs}` : ""}`;
+
+  const controller = new AbortController();
+  const timer = signal ? null : setTimeout(() => controller.abort(), timeoutMs);
+  const activeSignal = signal || controller.signal;
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: activeSignal,
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      throw new SourceUnavailableError(`Neo X stats responded ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    if (error instanceof SourceUnavailableError) throw error;
+    if (error?.name === "AbortError") {
+      throw new SourceUnavailableError("Neo X stats request timed out");
+    }
+    throw new SourceUnavailableError(error?.message || "Neo X stats request failed");
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// Normalize one /lines/{id} payload into ascending [{ date, value }] points.
+// Upstream values are numeric strings; rows with a missing date or a
+// non-finite value are dropped rather than rendered as zero.
+function normalizeChartLine(raw) {
+  const rows = Array.isArray(raw?.chart) ? raw.chart : [];
+  return rows
+    .filter((row) => row && typeof row.date === "string" && row.date && row.value !== null && row.value !== undefined)
+    .map((row) => ({ date: row.date, value: Number(row.value) }))
+    .filter((point) => Number.isFinite(point.value))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
 /**
@@ -53,6 +108,31 @@ export const statsService = {
   async getTxChart(opts = {}) {
     const data = await fetchBlockscout(netOf(opts), "stats/charts/transactions", { signal: opts.signal });
     return Array.isArray(data?.chart_data) ? data.chart_data : [];
+  },
+
+  /**
+   * Daily points for one stats-microservice chart line (e.g. "newTxns",
+   * "averageGasPrice"). Returns an ascending [{ date: "YYYY-MM-DD",
+   * value: Number }] array; unknown chart ids resolve to [].
+   */
+  async getChartLine(id, opts = {}) {
+    const data = await fetchNeoxStats(netOf(opts), `lines/${encodeURIComponent(String(id || ""))}`, {
+      params: { resolution: "DAY", from: opts.from, to: opts.to },
+      signal: opts.signal,
+    });
+    return normalizeChartLine(data);
+  },
+
+  /** Chart catalog: [{ id, title, charts: [{ id, title, ... }] }] sections. */
+  async getChartsCatalog(opts = {}) {
+    const data = await fetchNeoxStats(netOf(opts), "lines", { signal: opts.signal });
+    return Array.isArray(data?.sections) ? data.sections : [];
+  },
+
+  /** Headline counters: [{ id, value, title, units, description }]. */
+  async getCountersList(opts = {}) {
+    const data = await fetchNeoxStats(netOf(opts), "counters", { signal: opts.signal });
+    return Array.isArray(data?.counters) ? data.counters : [];
   },
 
   /** Indexer progress, for a "still syncing" banner. Returns null when unavailable. */

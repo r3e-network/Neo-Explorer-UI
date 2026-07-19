@@ -61,228 +61,281 @@
       <ErrorState v-else-if="error" :title="tf('neoX.notFound', 'Transaction not found.')" :message="error" @retry="load" />
 
       <!-- Tabbed content -->
-      <div v-else-if="tx" class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-1">
-        <div class="p-3 pb-0">
-          <TabsNav :tabs="tabs" v-model="activeTab" id-base="x-tx" />
+      <template v-else-if="tx">
+        <!-- One-line action summary banner -->
+        <div
+          v-if="actionSummary"
+          class="mb-6 flex items-start gap-3 rounded-xl border border-primary-500/30 bg-primary-500/10 p-4 backdrop-blur-sm animate-page-enter"
+        >
+          <svg
+            class="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p class="text-sm text-primary-800 dark:text-primary-300">
+            <template v-if="actionSummary.kind === 'deploy'">
+              {{ tf("neoX.summaryDeploy", "Deployed contract") }}
+              <XHashLink type="address" :hash="tx.createdContract?.hash || ''" :name="tx.createdContract?.name || ''" />
+            </template>
+            <template v-else-if="actionSummary.kind === 'transfers'">
+              {{ tf("neoX.summaryTransferred", "Transferred") }}
+              <span v-for="(item, i) in actionSummary.items" :key="i" class="badge-soft mx-0.5">
+                {{ item.amount != null ? item.amount : (item.tokenId != null ? `#${item.tokenId}` : "—") }}
+                {{ item.symbol
+                }}<template v-if="item.direction">
+                  · {{ item.direction === "mint" ? tf("neoX.mint", "Mint") : tf("neoX.burn", "Burn") }}</template>
+              </span>
+              <span v-if="actionSummary.count > actionSummary.items.length" class="badge-soft mx-0.5">
+                +{{ actionSummary.count - actionSummary.items.length }}
+              </span>
+            </template>
+            <template v-else-if="actionSummary.kind === 'send'">
+              {{ tf("neoX.summarySent", "Sent") }}
+              <span class="badge-soft mx-0.5">{{ actionSummary.amount }} GAS</span>
+              {{ tf("neoX.summaryTo", "to") }}
+              <XHashLink v-if="tx.to" type="address" :hash="tx.to" :name="tx.toInfo?.name || ''" />
+              <span v-else>{{ actionSummary.to }}</span>
+            </template>
+            <template v-else-if="actionSummary.kind === 'call'">
+              {{ tf("neoX.summaryCalled", "Called") }}
+              <span class="badge-soft mx-0.5">{{ actionSummary.method }}</span>
+              {{ tf("neoX.summaryOn", "on") }}
+              <XHashLink v-if="tx.to" type="address" :hash="tx.to" :name="tx.toInfo?.name || ''" />
+              <span v-else>{{ actionSummary.target }}</span>
+            </template>
+          </p>
         </div>
 
-        <Transition name="tab-fade" mode="out-in">
-          <div :key="activeTab" class="p-4 pt-5 md:p-5">
-            <!-- Overview -->
-            <section
-              v-if="activeTab === 'overview'"
-              id="x-tx-overview-panel"
-              role="tabpanel"
-              aria-labelledby="x-tx-overview-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <div class="soft-divider divide-y">
-                <InfoRow :label="tf('neoX.txHash', 'Tx Hash')" copyable :copy-value="tx.hash">
-                  <span class="font-mono text-sm break-all">{{ tx.hash }}</span>
-                </InfoRow>
+        <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-1">
+          <div class="p-3 pb-0">
+            <TabsNav :tabs="tabs" v-model="activeTab" id-base="x-tx" />
+          </div>
 
-                <InfoRow :label="tf('neoX.status', 'Status')">
-                  <span class="inline-flex flex-wrap items-center gap-2">
-                    <StatusBadge :status="txStatus" />
-                    <span v-if="tx.confirmations > 0" class="text-mid text-xs">
-                      {{ formatInt(tx.confirmations) }} {{ tf("neoX.blockConfirmations", "Block Confirmations") }}
+            <div :key="activeTab" class="p-4 pt-5 md:p-5">
+              <!-- Overview -->
+              <section
+                v-if="activeTab === 'overview'"
+                id="x-tx-overview-panel"
+                role="tabpanel"
+                aria-labelledby="x-tx-overview-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <div class="soft-divider divide-y">
+                  <InfoRow :label="tf('neoX.txHash', 'Tx Hash')" copyable :copy-value="tx.hash">
+                    <span class="font-mono text-sm break-all">{{ tx.hash }}</span>
+                  </InfoRow>
+
+                  <InfoRow :label="tf('neoX.status', 'Status')">
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                      <StatusBadge :status="txStatus" />
+                      <span v-if="tx.confirmations > 0" class="text-mid text-xs">
+                        {{ formatInt(tx.confirmations) }} {{ tf("neoX.blockConfirmations", "Block Confirmations") }}
+                      </span>
                     </span>
-                  </span>
-                </InfoRow>
+                  </InfoRow>
 
-                <InfoRow v-if="tx.blockIndex != null" :label="tf('neoX.block', 'Block')">
-                  <XHashLink type="block" :hash="String(tx.blockIndex)" :label="`#${formatInt(tx.blockIndex)}`" />
-                </InfoRow>
+                  <InfoRow v-if="tx.blockIndex != null" :label="tf('neoX.block', 'Block')">
+                    <XHashLink type="block" :hash="String(tx.blockIndex)" :label="`#${formatInt(tx.blockIndex)}`" />
+                  </InfoRow>
 
-                <InfoRow :label="tf('neoX.timestamp', 'Timestamp')">
-                  <span>{{ formatTimestamp(tx.timestampMs) }} · {{ timeAgo(tx.timestampMs) }}</span>
-                  <span v-if="confirmationSeconds" class="text-mid ml-1.5 text-xs">
-                    ({{ tf("neoX.confirmedWithin", "Confirmed within") }} {{ confirmationSeconds }}s)
-                  </span>
-                </InfoRow>
+                  <InfoRow :label="tf('neoX.timestamp', 'Timestamp')">
+                    <span>{{ formatTimestamp(tx.timestampMs) }} · {{ timeAgo(tx.timestampMs) }}</span>
+                    <span v-if="confirmationSeconds" class="text-mid ml-1.5 text-xs">
+                      ({{ tf("neoX.confirmedWithin", "Confirmed within") }} {{ confirmationSeconds }}s)
+                    </span>
+                  </InfoRow>
 
-                <InfoRow :label="tf('neoX.from', 'From')">
-                  <span class="inline-flex flex-wrap items-center gap-2">
-                    <XHashLink
-                      v-if="tx.sender"
-                      type="address"
-                      :hash="tx.sender"
-                      :name="tx.fromInfo?.name || ''"
-                      :truncate="false"
-                      copyable
-                    />
-                    <span v-else class="text-mid">—</span>
-                    <span
-                      v-if="tx.fromInfo?.isVerified"
-                      class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
-                    >{{ tf("neoX.verified", "Verified") }}</span>
-                  </span>
-                </InfoRow>
-
-                <InfoRow :label="tf('neoX.to', 'To')">
-                  <span class="inline-flex flex-wrap items-center gap-2">
-                    <template v-if="tx.to">
-                      <XHashLink type="address" :hash="tx.to" :name="tx.toInfo?.name || ''" :truncate="false" copyable />
-                      <span
-                        v-if="tx.toInfo?.isVerified"
-                        class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
-                      >{{ tf("neoX.verified", "Verified") }}</span>
-                    </template>
-                    <template v-else-if="tx.createdContract?.hash">
-                      <span class="badge-soft">{{ tf("neoX.contractCreation", "Contract creation") }}</span>
+                  <InfoRow :label="tf('neoX.from', 'From')">
+                    <span class="inline-flex flex-wrap items-center gap-2">
                       <XHashLink
+                        v-if="tx.sender"
                         type="address"
-                        :hash="tx.createdContract.hash"
-                        :name="tx.createdContract.name || ''"
+                        :hash="tx.sender"
+                        :name="tx.fromInfo?.name || ''"
                         :truncate="false"
                         copyable
                       />
-                    </template>
-                    <span v-else class="text-mid">—</span>
-                  </span>
-                </InfoRow>
-
-                <InfoRow v-if="tx.method" :label="tf('neoX.method', 'Method')">
-                  <span class="badge-soft">{{ tx.method }}</span>
-                </InfoRow>
-
-                <InfoRow v-if="tx.decodedInput" :label="tf('neoX.decodedInput', 'Decoded Input')">
-                  <XDecodedInput :decoded="tx.decodedInput" />
-                </InfoRow>
-
-                <InfoRow :label="tf('neoX.value', 'Value')">{{ formatGas(tx.value) }} GAS</InfoRow>
-
-                <InfoRow :label="tf('neoX.txFee', 'Transaction Fee')">{{ formatGas(tx.fee) }} GAS</InfoRow>
-
-                <InfoRow v-if="tx.gasPrice != null" :label="tf('neoX.gasPrice', 'Gas Price')">
-                  {{ formatGwei(tx.gasPrice) }} Gwei
-                </InfoRow>
-
-                <InfoRow :label="tf('neoX.gasLimitUsage', 'Gas Limit & Usage')">
-                  <span class="inline-flex flex-wrap items-center gap-2">
-                    <span>{{ formatInt(tx.gasUsed) }} / {{ formatInt(tx.gasLimit) }}</span>
-                    <span v-if="gasPct != null" class="bg-line-soft inline-block h-1.5 w-24 overflow-hidden rounded-full">
-                      <span class="bg-primary-500 block h-full rounded-full" :style="{ width: `${Math.min(100, gasPct)}%` }"></span>
+                      <span v-else class="text-mid">—</span>
+                      <span
+                        v-if="tx.fromInfo?.isVerified"
+                        class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
+                      >{{ tf("neoX.verified", "Verified") }}</span>
                     </span>
-                    <span v-if="gasPct != null" class="text-mid text-xs">{{ gasPct.toFixed(2) }}%</span>
-                  </span>
-                </InfoRow>
-
-                <template v-if="tx.maxFeePerGas != null">
-                  <InfoRow :label="tf('neoX.maxFee', 'Max Fee')">{{ formatGwei(tx.maxFeePerGas) }} Gwei</InfoRow>
-                  <InfoRow v-if="tx.maxPriorityFeePerGas != null" :label="tf('neoX.maxPriorityFee', 'Max Priority Fee')">
-                    {{ formatGwei(tx.maxPriorityFeePerGas) }} Gwei
                   </InfoRow>
-                  <InfoRow v-if="tx.priorityFee != null" :label="tf('neoX.priorityFee', 'Priority Fee')">
-                    {{ formatGas(tx.priorityFee) }} GAS
+
+                  <InfoRow :label="tf('neoX.to', 'To')">
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                      <template v-if="tx.to">
+                        <XHashLink type="address" :hash="tx.to" :name="tx.toInfo?.name || ''" :truncate="false" copyable />
+                        <span
+                          v-if="tx.toInfo?.isVerified"
+                          class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
+                        >{{ tf("neoX.verified", "Verified") }}</span>
+                      </template>
+                      <template v-else-if="tx.createdContract?.hash">
+                        <span class="badge-soft">{{ tf("neoX.contractCreation", "Contract creation") }}</span>
+                        <XHashLink
+                          type="address"
+                          :hash="tx.createdContract.hash"
+                          :name="tx.createdContract.name || ''"
+                          :truncate="false"
+                          copyable
+                        />
+                      </template>
+                      <span v-else class="text-mid">—</span>
+                    </span>
                   </InfoRow>
-                  <InfoRow v-if="tx.burntFee != null" :label="tf('neoX.burntFee', 'Burnt Fee')">
-                    {{ formatGas(tx.burntFee) }} GAS
+
+                  <InfoRow v-if="tx.method" :label="tf('neoX.method', 'Method')">
+                    <span class="badge-soft">{{ tx.method }}</span>
                   </InfoRow>
-                </template>
 
-                <InfoRow v-if="tx.nonce != null" :label="tf('neoX.nonce', 'Nonce')">
-                  <span>{{ tx.nonce }}</span>
-                  <span v-if="tx.position != null" class="text-mid ml-1.5 text-xs">
-                    ({{ tf("neoX.position", "Position") }}: {{ tx.position }})
-                  </span>
-                </InfoRow>
+                  <InfoRow v-if="tx.decodedInput" :label="tf('neoX.decodedInput', 'Decoded Input')">
+                    <XDecodedInput :decoded="tx.decodedInput" />
+                  </InfoRow>
 
-                <InfoRow v-if="typeBadges.length" :label="tf('neoX.type', 'Type')">
-                  <span class="inline-flex flex-wrap items-center gap-1.5">
-                    <span v-for="badge in typeBadges" :key="badge" class="badge-soft">{{ badge }}</span>
-                  </span>
-                </InfoRow>
-              </div>
+                  <InfoRow :label="tf('neoX.value', 'Value')">{{ formatGas(tx.value) }} GAS</InfoRow>
 
-              <!-- Token transfers (inlined in the tx payload) -->
-              <div v-if="tx.tokenTransfers.length" class="mt-6">
-                <h3 class="text-high mb-2 text-base font-semibold">
-                  {{ tf("neoX.tokenTransfers", "Token Transfers") }}
-                  <span class="text-mid ml-1 text-sm font-normal">({{ tx.tokenTransfers.length }})</span>
-                </h3>
-                <div class="soft-divider divide-y">
-                  <div
-                    v-for="(transfer, i) in tx.tokenTransfers"
-                    :key="i"
-                    class="list-row flex flex-wrap items-center gap-2 rounded px-3 py-2"
-                  >
-                    <TokenAvatar
-                      :src="transfer.token?.icon_url || ''"
-                      :name="transfer.token?.name || ''"
-                      :symbol="transfer.token?.symbol || ''"
-                      size="sm"
-                    />
-                    <span class="text-high text-sm font-medium">{{ transferAmount(transfer) }}</span>
-                    <router-link
-                      v-if="tokenAddress(transfer)"
-                      :to="`/x/token/${tokenAddress(transfer)}`"
-                      class="etherscan-link font-medium"
-                    >{{ transfer.token?.symbol || shortHash(tokenAddress(transfer)) }}</router-link>
-                    <span v-if="transfer.type === 'token_minting'" class="badge-soft">{{ tf("neoX.mint", "Mint") }}</span>
-                    <span v-if="transfer.type === 'token_burning'" class="badge-soft">{{ tf("neoX.burn", "Burn") }}</span>
-                    <span class="text-low text-xs">{{ tf("neoX.from", "From") }}</span>
-                    <XHashLink type="address" :hash="addressHash(transfer.from)" :name="transfer.from?.name || ''" />
-                    <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                    <XHashLink type="address" :hash="addressHash(transfer.to)" :name="transfer.to?.name || ''" />
+                  <InfoRow :label="tf('neoX.txFee', 'Transaction Fee')">{{ formatGas(tx.fee) }} GAS</InfoRow>
+
+                  <InfoRow v-if="tx.gasPrice != null" :label="tf('neoX.gasPrice', 'Gas Price')">
+                    {{ formatGwei(tx.gasPrice) }} Gwei
+                  </InfoRow>
+
+                  <InfoRow :label="tf('neoX.gasLimitUsage', 'Gas Limit & Usage')">
+                    <span class="inline-flex flex-wrap items-center gap-2">
+                      <span>{{ formatInt(tx.gasUsed) }} / {{ formatInt(tx.gasLimit) }}</span>
+                      <span v-if="gasPct != null" class="bg-line-soft inline-block h-1.5 w-24 overflow-hidden rounded-full">
+                        <span class="bg-primary-500 block h-full rounded-full" :style="{ width: `${Math.min(100, gasPct)}%` }"></span>
+                      </span>
+                      <span v-if="gasPct != null" class="text-mid text-xs">{{ gasPct.toFixed(2) }}%</span>
+                    </span>
+                  </InfoRow>
+
+                  <template v-if="tx.maxFeePerGas != null">
+                    <InfoRow :label="tf('neoX.maxFee', 'Max Fee')">{{ formatGwei(tx.maxFeePerGas) }} Gwei</InfoRow>
+                    <InfoRow v-if="tx.maxPriorityFeePerGas != null" :label="tf('neoX.maxPriorityFee', 'Max Priority Fee')">
+                      {{ formatGwei(tx.maxPriorityFeePerGas) }} Gwei
+                    </InfoRow>
+                    <InfoRow v-if="tx.priorityFee != null" :label="tf('neoX.priorityFee', 'Priority Fee')">
+                      {{ formatGas(tx.priorityFee) }} GAS
+                    </InfoRow>
+                    <InfoRow v-if="tx.burntFee != null" :label="tf('neoX.burntFee', 'Burnt Fee')">
+                      {{ formatGas(tx.burntFee) }} GAS
+                    </InfoRow>
+                  </template>
+
+                  <InfoRow v-if="tx.nonce != null" :label="tf('neoX.nonce', 'Nonce')">
+                    <span>{{ tx.nonce }}</span>
+                    <span v-if="tx.position != null" class="text-mid ml-1.5 text-xs">
+                      ({{ tf("neoX.position", "Position") }}: {{ tx.position }})
+                    </span>
+                  </InfoRow>
+
+                  <InfoRow v-if="typeBadges.length" :label="tf('neoX.type', 'Type')">
+                    <span class="inline-flex flex-wrap items-center gap-1.5">
+                      <span v-for="badge in typeBadges" :key="badge" class="badge-soft">{{ badge }}</span>
+                    </span>
+                  </InfoRow>
+                </div>
+
+                <!-- Token transfers (inlined in the tx payload) -->
+                <div v-if="tx.tokenTransfers.length" class="mt-6">
+                  <h3 class="text-high mb-2 text-base font-semibold">
+                    {{ tf("neoX.tokenTransfers", "Token Transfers") }}
+                    <span class="text-mid ml-1 text-sm font-normal">({{ tx.tokenTransfers.length }})</span>
+                  </h3>
+                  <div class="soft-divider divide-y">
+                    <div
+                      v-for="(transfer, i) in tx.tokenTransfers"
+                      :key="i"
+                      class="list-row flex flex-wrap items-center gap-2 rounded px-3 py-2"
+                    >
+                      <TokenAvatar
+                        :src="transfer.token?.icon_url || ''"
+                        :name="transfer.token?.name || ''"
+                        :symbol="transfer.token?.symbol || ''"
+                        size="sm"
+                      />
+                      <span class="text-high text-sm font-medium">{{ transferAmount(transfer) }}</span>
+                      <router-link
+                        v-if="tokenAddress(transfer)"
+                        :to="`/x/token/${tokenAddress(transfer)}`"
+                        class="etherscan-link font-medium"
+                      >{{ transfer.token?.symbol || shortHash(tokenAddress(transfer)) }}</router-link>
+                      <span v-if="transfer.type === 'token_minting'" class="badge-soft">{{ tf("neoX.mint", "Mint") }}</span>
+                      <span v-if="transfer.type === 'token_burning'" class="badge-soft">{{ tf("neoX.burn", "Burn") }}</span>
+                      <span class="text-low text-xs">{{ tf("neoX.from", "From") }}</span>
+                      <XHashLink type="address" :hash="addressHash(transfer.from)" :name="transfer.from?.name || ''" />
+                      <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                      <XHashLink type="address" :hash="addressHash(transfer.to)" :name="transfer.to?.name || ''" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            <!-- Logs -->
-            <section
-              v-else-if="activeTab === 'logs'"
-              id="x-tx-logs-panel"
-              role="tabpanel"
-              aria-labelledby="x-tx-logs-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <XTxLogsTab :hash="tx.hash" @count="logsCount = $event" />
-            </section>
+              <!-- Logs -->
+              <section
+                v-else-if="activeTab === 'logs'"
+                id="x-tx-logs-panel"
+                role="tabpanel"
+                aria-labelledby="x-tx-logs-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <XTxLogsTab :hash="tx.hash" @count="logsCount = $event" />
+              </section>
 
-            <!-- Internal transactions -->
-            <section
-              v-else-if="activeTab === 'internal'"
-              id="x-tx-internal-panel"
-              role="tabpanel"
-              aria-labelledby="x-tx-internal-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <XTxInternalTab :hash="tx.hash" />
-            </section>
+              <!-- Internal transactions -->
+              <section
+                v-else-if="activeTab === 'internal'"
+                id="x-tx-internal-panel"
+                role="tabpanel"
+                aria-labelledby="x-tx-internal-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <XTxInternalTab :hash="tx.hash" />
+              </section>
 
-            <!-- State changes -->
-            <section
-              v-else-if="activeTab === 'state'"
-              id="x-tx-state-panel"
-              role="tabpanel"
-              aria-labelledby="x-tx-state-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <XTxStateTab :hash="tx.hash" />
-            </section>
+              <!-- State changes -->
+              <section
+                v-else-if="activeTab === 'state'"
+                id="x-tx-state-panel"
+                role="tabpanel"
+                aria-labelledby="x-tx-state-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <XTxStateTab :hash="tx.hash" />
+              </section>
 
-            <!-- Raw input -->
-            <section
-              v-else-if="activeTab === 'raw'"
-              id="x-tx-raw-panel"
-              role="tabpanel"
-              aria-labelledby="x-tx-raw-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <XTxRawTab :raw-input="tx.rawInput || ''" :is-creation="!tx.to" :method-id="tx.decodedInput?.method_id || null" />
-            </section>
-          </div>
-        </Transition>
-      </div>
+              <!-- Raw input -->
+              <section
+                v-else-if="activeTab === 'raw'"
+                id="x-tx-raw-panel"
+                role="tabpanel"
+                aria-labelledby="x-tx-raw-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <XTxRawTab :raw-input="tx.rawInput || ''" :is-creation="!tx.to" :method-id="tx.decodedInput?.method_id || null" />
+              </section>
+            </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -295,6 +348,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet } from "@/utils/neoxEnv";
 import { transactionService } from "@/services/neox";
 import { formatGas, formatGwei, formatInt, formatUnits, formatTimestamp, timeAgo, shortHash } from "@/utils/neoxFormat";
+import { buildTxActionSummary } from "@/utils/txActionSummary";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -371,6 +425,8 @@ const typeBadges = computed(() => {
   if (evmType != null) badges.push(Number(evmType) === 2 ? "EIP-1559 (2)" : `Type ${evmType}`);
   return badges;
 });
+
+const actionSummary = computed(() => (tx.value ? buildTxActionSummary(tx.value) : null));
 
 const tabs = computed(() => [
   { key: "overview", label: tf("neoX.overview", "Overview") },

@@ -101,6 +101,7 @@ const XTokens = lazyLoad(() => import("../views/X/XTokens.vue"));
 const XTokenDetail = lazyLoad(() => import("../views/X/XTokenDetail.vue"));
 const XContracts = lazyLoad(() => import("../views/X/XContracts.vue"));
 const XAccounts = lazyLoad(() => import("../views/X/XAccounts.vue"));
+const XCharts = lazyLoad(() => import("../views/X/XCharts.vue"));
 
 const routes = [
   {
@@ -542,6 +543,12 @@ const routes = [
         name: "xAccounts",
         meta: { titleKey: "pageTitles.xAccounts" },
         component: XAccounts,
+      },
+      {
+        path: "/x/charts",
+        name: "xCharts",
+        meta: { titleKey: "pageTitles.xCharts" },
+        component: XCharts,
       },
       {
         path: "/:pathMatch(.*)*",

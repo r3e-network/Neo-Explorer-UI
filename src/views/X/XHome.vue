@@ -224,7 +224,7 @@
 
         <!-- Secondary mini-stats row -->
         <div class="soft-divider mt-4 border-t pt-4">
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div class="mini-stat">
               <span class="mini-label">{{ tf("neoX.txnsToday", "Txns Today") }}</span>
               <span class="mini-value">{{ stats ? formatInt(stats.transactionsToday) : "—" }}</span>
@@ -236,6 +236,10 @@
             <div class="mini-stat">
               <span class="mini-label">{{ tf("neoX.networkUtilization", "Network Utilization") }}</span>
               <span class="mini-value">{{ networkUtilizationLabel }}</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-label">{{ tf("neoX.mempool", "Mempool") }}</span>
+              <span class="mini-value">{{ mempoolLabel }}</span>
             </div>
             <div class="mini-stat">
               <span class="mini-label">{{ tf("neoX.indexingStatus", "Indexing Status") }}</span>
@@ -323,7 +327,7 @@ import XTxTable from "./components/XTxTable.vue";
 import XTxChart from "./components/XTxChart.vue";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet, getNeoxLabel, getNeoxRefreshIntervalMs } from "@/utils/neoxEnv";
-import { statsService, blockService, transactionService, searchService } from "@/services/neox";
+import { statsService, blockService, transactionService, searchService, rpcService } from "@/services/neox";
 import { formatInt } from "@/utils/neoxFormat";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -339,6 +343,7 @@ const tf = (key, fallback) => {
 // --- Data state ---
 const stats = ref(null);
 const indexing = ref(null);
+const mempool = ref(null);
 const latestBlocks = ref([]);
 const latestTxs = ref([]);
 const statsLoading = ref(true);
@@ -376,6 +381,14 @@ const networkUtilizationLabel = computed(() => {
   return `${Number(pct).toFixed(2)}%`;
 });
 
+// Mempool depth via the node RPC proxy; degrades to an em dash, never an error.
+const mempoolLabel = computed(() => {
+  if (!mempool.value) return "—";
+  const pending = `${formatInt(mempool.value.pending)} ${tf("neoX.mempoolPending", "pending")}`;
+  const queued = `${formatInt(mempool.value.queued)} ${tf("neoX.mempoolQueued", "queued")}`;
+  return `${pending} · ${queued}`;
+});
+
 const indexingRatioLabel = computed(() => {
   const ratio = Number(indexing.value?.indexedBlocksRatio);
   if (!Number.isFinite(ratio) || ratio <= 0) return "";
@@ -395,11 +408,12 @@ async function loadAll({ silent = false } = {}) {
     txsLoading.value = true;
   }
 
-  const [s, idx, b, tx] = await Promise.allSettled([
+  const [s, idx, b, tx, pool] = await Promise.allSettled([
     statsService.getStats({ net }),
     statsService.getIndexingStatus({ net }),
     blockService.getLatest(LATEST_ROWS, { net }),
     transactionService.getLatest(LATEST_ROWS, { net }),
+    rpcService.getTxpoolStatus({ net }),
   ]);
   if (generation !== loadGeneration) return;
 
@@ -409,6 +423,11 @@ async function loadAll({ silent = false } = {}) {
     stats.value = null;
   }
   indexing.value = idx.status === "fulfilled" ? idx.value : indexing.value;
+  if (pool.status === "fulfilled") {
+    mempool.value = pool.value;
+  } else if (!silent) {
+    mempool.value = null;
+  }
 
   if (b.status === "fulfilled") {
     latestBlocks.value = Array.isArray(b.value) ? b.value : [];

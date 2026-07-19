@@ -79,6 +79,11 @@
             <pre class="panel-muted overflow-x-auto whitespace-pre rounded-lg p-4 text-xs font-hash">{{ abiJson }}</pre>
           </div>
         </CollapsibleSection>
+
+        <!-- Read contract (view/pure ABI functions via the read-only RPC proxy) -->
+        <CollapsibleSection v-if="abiArray.length" :title="tf('neoX.readContract', 'Read Contract')">
+          <XReadContract :address="address" :abi="abiArray" />
+        </CollapsibleSection>
       </div>
     </template>
 
@@ -157,6 +162,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import CollapsibleSection from "@/components/common/CollapsibleSection.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
+import XReadContract from "./XReadContract.vue";
 import { formatInt } from "@/utils/neoxFormat";
 import { disassemble } from "@/utils/evmDisasm";
 
@@ -204,6 +210,8 @@ async function load() {
 const additionalSources = computed(() =>
   Array.isArray(contract.value?.additional_sources) ? contract.value.additional_sources : []
 );
+
+const abiArray = computed(() => (Array.isArray(contract.value?.abi) ? contract.value.abi : []));
 
 const abiJson = computed(() => {
   const abi = contract.value?.abi;

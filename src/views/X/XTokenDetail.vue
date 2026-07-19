@@ -112,7 +112,6 @@
           <div class="p-3 pb-0">
             <TabsNav :tabs="tabs" v-model="activeTab" id-base="x-token" />
           </div>
-          <Transition name="tab-fade" mode="out-in">
             <div :key="`${hash}-${activeTab}`" class="p-4 pt-5 md:p-5">
               <section
                 v-if="activeTab === 'transfers'"
@@ -145,7 +144,6 @@
                 <XNftGalleryTab :hash="hash" />
               </section>
             </div>
-          </Transition>
         </div>
       </template>
     </div>

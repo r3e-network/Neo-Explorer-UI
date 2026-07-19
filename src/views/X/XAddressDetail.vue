@@ -150,7 +150,6 @@
           <div class="p-3 pb-0">
             <TabsNav :tabs="tabs" v-model="activeTab" id-base="x-addr" />
           </div>
-          <Transition name="tab-fade" mode="out-in">
             <div :key="`${addr}-${activeTab}`" class="p-4 pt-5 md:p-5">
               <section
                 v-if="activeTab === 'transactions'"
@@ -223,7 +222,6 @@
                 <XContractTab :address="addr" />
               </section>
             </div>
-          </Transition>
         </div>
       </template>
     </div>

@@ -10,6 +10,7 @@ import { tokenService } from "./tokenService";
 import { contractService } from "./contractService";
 import { statsService } from "./statsService";
 import { searchService } from "./searchService";
+import { rpcService } from "./rpcService";
 
 export const neoxServices = {
   blockService,
@@ -19,8 +20,9 @@ export const neoxServices = {
   contractService,
   statsService,
   searchService,
+  rpcService,
 };
 
-export { blockService, transactionService, accountService, tokenService, contractService, statsService, searchService };
+export { blockService, transactionService, accountService, tokenService, contractService, statsService, searchService, rpcService };
 
 export default neoxServices;

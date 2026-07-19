@@ -13,6 +13,13 @@ const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 // we proxy straight to the upstream here.
 const DEFAULT_NEOX_MAINNET_PROXY_TARGET = "https://xexplorer.neo.org";
 const DEFAULT_NEOX_TESTNET_PROXY_TARGET = "https://xt4scan.ngd.network";
+// Neo X stats microservice (charts/counters) + node JSON-RPC upstreams. In
+// production these go through api/neox-stats/* and api/neox-rpc/*; in dev we
+// proxy straight to the upstreams here.
+const DEFAULT_NEOX_MAINNET_STATS_PROXY_TARGET = "https://xexplorer.neo.org:8080";
+const DEFAULT_NEOX_TESTNET_STATS_PROXY_TARGET = "https://xt4scan.ngd.network:8080";
+const DEFAULT_NEOX_MAINNET_RPC_PROXY_TARGET = "https://mainnet-1.rpc.banelabs.org";
+const DEFAULT_NEOX_TESTNET_RPC_PROXY_TARGET = "https://testnet-1.rpc.banelabs.org";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";
 const DEV_PRICE_CACHE_TTL_MS = 60 * 1000;
@@ -346,6 +353,10 @@ export default defineConfig(({ mode }) => {
   const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
   const neoxMainnetTarget = env.VITE_NEOX_MAINNET_PROXY_TARGET || DEFAULT_NEOX_MAINNET_PROXY_TARGET;
   const neoxTestnetTarget = env.VITE_NEOX_TESTNET_PROXY_TARGET || DEFAULT_NEOX_TESTNET_PROXY_TARGET;
+  const neoxMainnetStatsTarget = env.VITE_NEOX_MAINNET_STATS_PROXY_TARGET || DEFAULT_NEOX_MAINNET_STATS_PROXY_TARGET;
+  const neoxTestnetStatsTarget = env.VITE_NEOX_TESTNET_STATS_PROXY_TARGET || DEFAULT_NEOX_TESTNET_STATS_PROXY_TARGET;
+  const neoxMainnetRpcTarget = env.VITE_NEOX_MAINNET_RPC_PROXY_TARGET || DEFAULT_NEOX_MAINNET_RPC_PROXY_TARGET;
+  const neoxTestnetRpcTarget = env.VITE_NEOX_TESTNET_RPC_PROXY_TARGET || DEFAULT_NEOX_TESTNET_RPC_PROXY_TARGET;
 
   return {
     plugins: [
@@ -389,6 +400,10 @@ export default defineConfig(({ mode }) => {
         "/rest/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1") },
         "/neox/mainnet": { target: neoxMainnetTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox\/mainnet/, "/api/v2") },
         "/neox/testnet": { target: neoxTestnetTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox\/testnet/, "/api/v2") },
+        "/neox-stats/mainnet": { target: neoxMainnetStatsTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox-stats\/mainnet/, "/api/v1") },
+        "/neox-stats/testnet": { target: neoxTestnetStatsTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/neox-stats\/testnet/, "/api/v1") },
+        "/neox-rpc/mainnet": { target: neoxMainnetRpcTarget, changeOrigin: true, rewrite: () => "/" },
+        "/neox-rpc/testnet": { target: neoxTestnetRpcTarget, changeOrigin: true, rewrite: () => "/" },
       },
     },
     optimizeDeps: {
