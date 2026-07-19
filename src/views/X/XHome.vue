@@ -12,8 +12,9 @@
             <p class="mt-2 text-sm text-white/70">
               {{ netLabel }} · {{ tf("neoX.evmChain", "EVM sidechain") }}
             </p>
-            <div class="mt-4 flex justify-center">
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
               <ChainSwitchTabs />
+              <AddNeoxChainButton />
             </div>
 
             <!-- Hero search -->
@@ -319,6 +320,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import PageHero from "@/components/common/PageHero.vue";
 import ChainSwitchTabs from "@/components/common/ChainSwitchTabs.vue";
+import AddNeoxChainButton from "@/components/common/AddNeoxChainButton.vue";
 import AnimatedNumber from "@/components/common/AnimatedNumber.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";

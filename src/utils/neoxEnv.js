@@ -44,6 +44,8 @@ export const NEOX_CHAINS = {
     nativeCurrency: { name: "GAS", symbol: "GAS", decimals: 18 },
     explorerApiPrefix: "/neox/mainnet",
     explorerBaseUrl: "https://xexplorer.neo.org",
+    // Public JSON-RPC endpoints handed to EVM wallets (EIP-3085).
+    publicRpcUrls: ["https://mainnet-1.rpc.banelabs.org", "https://mainnet-2.rpc.banelabs.org"],
   },
   [NEOX_NET.Testnet]: {
     id: NEOX_NET.Testnet,
@@ -52,6 +54,7 @@ export const NEOX_CHAINS = {
     nativeCurrency: { name: "GAS", symbol: "GAS", decimals: 18 },
     explorerApiPrefix: "/neox/testnet",
     explorerBaseUrl: "https://xt4scan.ngd.network",
+    publicRpcUrls: ["https://testnet-1.rpc.banelabs.org", "https://neoxt4seed1.ngd.network"],
   },
 };
 
