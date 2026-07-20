@@ -3,6 +3,7 @@
 import { fetchBlockscout, LIST_TIMEOUT_MS } from "./blockscoutClient";
 import { toXTransaction, toXInternalTx, toXStateChange, toXPage } from "@/adapters/neox";
 import { getNeoxNet } from "@/utils/neoxEnv";
+import { mergeHomeFeedRows, readHomeFeed, writeHomeFeed } from "./homeFeedCache";
 
 const netOf = (opts) => (typeof opts === "string" ? opts : opts?.net) || getNeoxNet();
 const cursorParams = (opts) => (opts?.cursor && typeof opts.cursor === "object" ? { ...opts.cursor } : {});
@@ -10,9 +11,11 @@ const cursorParams = (opts) => (opts?.cursor && typeof opts.cursor === "object" 
 export const transactionService = {
   /** Latest transactions for the home overview (/main-page/transactions). */
   async getLatest(limit = 6, opts = {}) {
-    const data = await fetchBlockscout(netOf(opts), "main-page/transactions", { signal: opts.signal });
-    const items = Array.isArray(data) ? data.map(toXTransaction).filter(Boolean) : [];
-    return items.slice(0, limit);
+    const net = netOf(opts);
+    const data = await fetchBlockscout(net, "main-page/transactions", { signal: opts.signal });
+    const snapshot = Array.isArray(data) ? data.map(toXTransaction).filter(Boolean) : [];
+    const items = mergeHomeFeedRows(snapshot, readHomeFeed(net, "transactions", limit), "transactions", limit);
+    return writeHomeFeed(net, "transactions", items, limit);
   },
 
   /** Cursor page of transactions. */

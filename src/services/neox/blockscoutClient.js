@@ -1,7 +1,7 @@
 // Blockscout v2 REST transport for Neo X.
 //
 // Parallel to indexerReadService.js#fetchIndexerJson but for the EVM explorer:
-// it targets the `/neox/<net>/...` proxy prefix (see api/neox/[...path].js in
+// it targets the `/neox/<net>/...` proxy prefix (see api/neox.js in
 // prod, vite server.proxy in dev). Distinguishes three outcomes the same way
 // the N3 read path does:
 //   - 404            → resolve `null` (render an empty / not-found state)

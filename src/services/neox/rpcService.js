@@ -94,9 +94,9 @@ export const rpcService = {
     };
   },
 
-  /** eth_call against latest. Returns the raw hex return-data string. */
+  /** eth_call against latest or an explicit block tag. */
   async ethCall(callObj, opts = {}) {
-    return rpcCall("eth_call", [callObj, "latest"], opts);
+    return rpcCall("eth_call", [callObj, opts.blockTag || "latest"], opts);
   },
 
   /** The node's head block number (eth_blockNumber, hex parsed to Number). */

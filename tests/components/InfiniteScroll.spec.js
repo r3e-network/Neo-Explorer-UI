@@ -1,5 +1,5 @@
 import { mount, config } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 
 vi.mock("vue-i18n", () => ({
@@ -7,6 +7,17 @@ vi.mock("vue-i18n", () => ({
 }));
 
 config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
+const originalIntersectionObserver = window.IntersectionObserver;
+
+afterEach(() => {
+  if (originalIntersectionObserver === undefined) {
+    delete window.IntersectionObserver;
+  } else {
+    window.IntersectionObserver = originalIntersectionObserver;
+  }
+  vi.useRealTimers();
+});
 
 describe("InfiniteScroll", () => {
   it("renders an accessible fallback button when more rows are available", async () => {
@@ -41,5 +52,44 @@ describe("InfiniteScroll", () => {
 
     expect(wrapper.text()).toContain("common.noMoreItems");
     expect(wrapper.find("button").exists()).toBe(false);
+  });
+
+  it("supports button-only pagination without creating an observer", async () => {
+    const observer = vi.fn();
+    window.IntersectionObserver = observer;
+    const wrapper = mount(InfiniteScroll, {
+      props: { auto: false, loading: false, hasMore: true },
+      global: { mocks: { $t: (key) => key } },
+    });
+
+    expect(observer).not.toHaveBeenCalled();
+    await wrapper.get("button").trigger("click");
+    expect(wrapper.emitted("load-more")).toHaveLength(1);
+  });
+
+  it("auto-loads only once until the sentinel leaves and re-enters the viewport", async () => {
+    vi.useFakeTimers();
+    let callback;
+    window.IntersectionObserver = class {
+      constructor(next) {
+        callback = next;
+      }
+      observe() {}
+      disconnect() {}
+    };
+
+    const wrapper = mount(InfiniteScroll, {
+      props: { loading: false, hasMore: true },
+      global: { mocks: { $t: (key) => key } },
+    });
+
+    callback([{ isIntersecting: true }]);
+    callback([{ isIntersecting: true }]);
+    expect(wrapper.emitted("load-more")).toHaveLength(1);
+
+    callback([{ isIntersecting: false }]);
+    vi.advanceTimersByTime(700);
+    callback([{ isIntersecting: true }]);
+    expect(wrapper.emitted("load-more")).toHaveLength(2);
   });
 });

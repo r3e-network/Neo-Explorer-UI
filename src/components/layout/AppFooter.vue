@@ -6,14 +6,14 @@
         <div>
           <div class="mb-3 flex items-center gap-2">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-primary-300 text-xs font-extrabold text-gray-900 shadow-sm"
+              class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-elevated p-1 shadow-sm"
             >
-              N3
+              <img :src="brandLogo" :alt="brandLogoAlt" class="h-full w-full object-contain" />
             </div>
-            <span class="text-high text-lg font-extrabold tracking-tight">Neo Explorer</span>
+            <span class="text-high text-lg font-extrabold tracking-tight">{{ brandLabel }}</span>
           </div>
           <p class="text-mid mb-4 text-sm leading-relaxed">
-            {{ $t("footer.description") }}
+            {{ footerDescription }}
           </p>
           <div class="flex items-center gap-3">
             <a
@@ -53,7 +53,7 @@
           <div
             class="soft-divider text-mid mt-4 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs bg-[var(--surface-elevated)]"
           >
-            {{ $t("footer.poweredBy") }} <strong class="text-neo-green">Neo N3</strong>
+            {{ $t("footer.poweredBy") }} <strong class="text-neo-green">{{ chainLabel }}</strong>
           </div>
         </div>
 
@@ -61,11 +61,9 @@
         <div>
           <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.blockchain") }}</h3>
           <ul class="space-y-2 text-sm">
-            <li><router-link to="/blocks/1" class="footer-link">{{ $t("nav.blocks") }}</router-link></li>
-            <li><router-link to="/transactions/1" class="footer-link">{{ $t("nav.transactions") }}</router-link></li>
-            <li><router-link to="/account/1" class="footer-link">{{ $t("nav.accounts") }}</router-link></li>
-            <li><router-link to="/contracts/1" class="footer-link">{{ $t("nav.contracts") }}</router-link></li>
-            <li><router-link to="/tokens/nep17/1" class="footer-link">{{ $t("nav.tokens") }}</router-link></li>
+            <li v-for="link in blockchainLinks" :key="link.to">
+              <router-link :to="link.to" class="footer-link">{{ link.label }}</router-link>
+            </li>
           </ul>
         </div>
 
@@ -73,11 +71,9 @@
         <div>
           <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.resources") }}</h3>
           <ul class="space-y-2 text-sm">
-            <li><router-link to="/echarts" class="footer-link">{{ $t("nav.chartsStats") }}</router-link></li>
-            <li><router-link to="/network-status" class="footer-link">{{ $t("nav.networkStatus") }}</router-link></li>
-            <li><router-link to="/gas-tracker" class="footer-link">{{ $t("nav.gasTracker") }}</router-link></li>
-            <li><router-link to="/burn" class="footer-link">{{ $t("nav.burnedGas") }}</router-link></li>
-            <li><router-link to="/candidates/1" class="footer-link">{{ $t("nav.consensusNodes") }}</router-link></li>
+            <li v-for="link in resourceLinks" :key="link.to">
+              <router-link :to="link.to" class="footer-link">{{ link.label }}</router-link>
+            </li>
           </ul>
         </div>
 
@@ -86,7 +82,7 @@
           <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.developers") }}</h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/api-docs" class="footer-link">{{ $t("nav.apiDocs") }}</router-link></li>
-            <li><router-link to="/verify-contract/" class="footer-link">{{ $t("nav.verifyContract") }}</router-link></li>
+            <li v-if="!isNeoxRoute"><router-link to="/verify-contract/" class="footer-link">{{ $t("nav.verifyContract") }}</router-link></li>
             <li><router-link to="/source-code" class="footer-link">{{ $t("nav.sourceCode") }}</router-link></li>
           </ul>
         </div>
@@ -112,6 +108,58 @@
 
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+const { t } = useI18n();
+
+const isNeoxRoute = computed(() => String(route.path || "").startsWith("/x"));
+const chainLabel = computed(() => (isNeoxRoute.value ? "Neo X" : "Neo N3"));
+const brandLogo = computed(() => (isNeoxRoute.value ? "/img/brand/neox-mark.svg" : "/img/brand/neo.png"));
+const brandLogoAlt = computed(() => (isNeoxRoute.value ? "Neo X logo" : "Neo logo"));
+const brandLabel = computed(() => (isNeoxRoute.value ? "Neo X Explorer" : "Neo Explorer"));
+const footerDescription = computed(() => {
+  if (!isNeoxRoute.value) return t("footer.description");
+  const translated = t("neoX.footerDescription");
+  return translated === "neoX.footerDescription"
+    ? "Explore Neo X blocks, transactions, accounts, tokens, contracts, and network activity."
+    : translated;
+});
+
+const blockchainLinks = computed(() =>
+  isNeoxRoute.value
+    ? [
+        { to: "/x/blocks", label: t("nav.blocks") },
+        { to: "/x/transactions", label: t("nav.transactions") },
+        { to: "/x/accounts", label: t("nav.accounts") },
+        { to: "/x/contracts", label: t("nav.contracts") },
+        { to: "/x/tokens", label: t("nav.tokens") },
+      ]
+    : [
+        { to: "/blocks/1", label: t("nav.blocks") },
+        { to: "/transactions/1", label: t("nav.transactions") },
+        { to: "/account/1", label: t("nav.accounts") },
+        { to: "/contracts/1", label: t("nav.contracts") },
+        { to: "/tokens/nep17/1", label: t("nav.tokens") },
+      ]
+);
+
+const resourceLinks = computed(() =>
+  isNeoxRoute.value
+    ? [
+        { to: "/x", label: t("nav.home") },
+        { to: "/x/charts", label: t("nav.chartsStats") },
+        { to: "/api-docs", label: t("nav.apiDocs") },
+      ]
+    : [
+        { to: "/echarts", label: t("nav.chartsStats") },
+        { to: "/network-status", label: t("nav.networkStatus") },
+        { to: "/gas-tracker", label: t("nav.gasTracker") },
+        { to: "/burn", label: t("nav.burnedGas") },
+        { to: "/candidates/1", label: t("nav.consensusNodes") },
+      ]
+);
 
 const currentYear = computed(() => new Date().getFullYear());
 

@@ -83,7 +83,7 @@
 
         <!-- Pagination -->
         <div v-if="!loading && items.length > 0" class="soft-divider border-t px-4 py-3">
-          <InfiniteScroll :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
+          <InfiniteScroll :auto="false" :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
         </div>
       </div>
     </section>
@@ -132,6 +132,7 @@ let statsSeq = 0;
 
 async function loadStats() {
   const seq = ++statsSeq;
+  stats.value = null;
   statsLoading.value = true;
   try {
     const result = await statsService.getStats({ net: getNeoxNet() });

@@ -95,6 +95,8 @@
            not-found empty state below, so title this as an outage, not "not found". -->
       <ErrorState v-else-if="error" :title="tf('neoX.blocksErrorTitle', 'Unable to load blocks')" :message="error" @retry="load" />
 
+      <EmptyState v-else-if="notFound" :message="tf('neoX.notFound', 'Block not found.')" icon="block" />
+
       <div v-else-if="block" class="space-y-6">
         <!-- Metrics -->
         <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4 animate-page-enter animate-page-enter-delay-1">
@@ -151,17 +153,22 @@
               <XHashLink type="block" :hash="block.prevHash" :truncate="false" copyable />
             </InfoRow>
 
-            <InfoRow :label="tf('neoX.validator', 'Validator')">
-              <!-- No :name here: the identity registry labels the coinbase
-                   ("Governance Reward") more accurately than Blockscout's
-                   generic proxy name. -->
-              <XHashLink
-                v-if="block.miner"
-                type="address"
-                :hash="block.miner"
-                :truncate="false"
-                copyable
-              />
+            <InfoRow :label="tf('neoX.primaryValidator', 'Primary Validator')">
+              <span v-if="block.primaryValidator" class="inline-flex min-w-0 flex-wrap items-center gap-2">
+                <XHashLink type="address" :hash="block.primaryValidator" :truncate="false" copyable />
+                <span v-if="block.primaryPosition != null" class="badge-soft whitespace-nowrap text-xs">
+                  {{ tf("neoX.consensusPosition", "Consensus Position") }} #{{ block.primaryPosition
+                  }}<template v-if="block.consensusSize">/{{ block.consensusSize }}</template>
+                </span>
+              </span>
+              <span v-else-if="block.primaryPosition != null" class="text-mid">
+                {{ tf("neoX.consensusPosition", "Consensus Position") }} #{{ block.primaryPosition }}
+              </span>
+              <span v-else class="text-mid">—</span>
+            </InfoRow>
+
+            <InfoRow :label="tf('neoX.feeRecipient', 'Fee Recipient')">
+              <XHashLink v-if="block.miner" type="address" :hash="block.miner" :truncate="false" copyable />
               <span v-else class="text-mid">—</span>
             </InfoRow>
 
@@ -235,6 +242,7 @@ import { formatGas, formatGwei, formatInt, formatTimestamp, timeAgo } from "@/ut
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
@@ -253,6 +261,7 @@ const txs = ref([]);
 const txListFailed = ref(false);
 const loading = ref(false);
 const error = ref("");
+const notFound = ref(false);
 let reqId = 0;
 
 const baseFeeGwei = computed(() => {
@@ -278,17 +287,19 @@ async function load() {
   const param = route.params.hash;
   if (!param) return;
   const current = ++reqId;
+  block.value = null;
+  txs.value = [];
+  txListFailed.value = false;
   loading.value = true;
   error.value = "";
+  notFound.value = false;
   try {
     const net = getNeoxNet();
     const found = await blockService.getByParam(param, { net });
     if (current !== reqId) return;
     block.value = found;
-    txs.value = [];
-    txListFailed.value = false;
     if (!found) {
-      error.value = tf("neoX.notFound", "Block not found.");
+      notFound.value = true;
     } else {
       // Secondary fetch: a failure here must not blank the block already shown.
       try {

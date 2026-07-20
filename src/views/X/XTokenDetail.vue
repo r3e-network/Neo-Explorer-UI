@@ -11,7 +11,7 @@
       />
 
       <!-- HERO -->
-      <div v-if="!error" class="detail-hero detail-hero-circuit detail-hero-enhanced animate-page-enter">
+      <div v-if="!error && !loading && token" class="detail-hero detail-hero-circuit detail-hero-enhanced animate-page-enter">
         <span class="circuit-particle"></span>
         <span class="circuit-particle"></span>
         <span class="circuit-particle"></span>
@@ -208,7 +208,7 @@ const supplyDisplay = computed(() => {
 });
 
 const holdersCount = computed(() => {
-  if (counters.value && counters.value.tokenHoldersCount) return counters.value.tokenHoldersCount;
+  if (counters.value?.tokenHoldersCount != null) return counters.value.tokenHoldersCount;
   const n = Number(token.value?.holders);
   return Number.isFinite(n) ? n : null;
 });
@@ -234,6 +234,9 @@ async function load() {
   const target = hash.value;
   if (!target) return;
   const current = ++reqId;
+  token.value = null;
+  counters.value = null;
+  addressInfo.value = null;
   loading.value = true;
   error.value = false;
   try {

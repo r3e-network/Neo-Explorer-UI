@@ -1,5 +1,6 @@
 const ko = {
   neoX: {
+    footerDescription: "Neo X 블록, 트랜잭션, 계정, 토큰, 컨트랙트 및 네트워크 활동을 탐색하세요.",
     evmChain: "EVM 사이드체인",
     viewN3: "Neo N3 보기 →",
     upstreamUnavailable: "Neo X 탐색기 데이터를 일시적으로 사용할 수 없습니다.",
@@ -15,6 +16,9 @@ const ko = {
     gasUsedLimit: "가스 사용 / 한도",
     baseFee: "기본 수수료",
     validator: "검증자",
+    primaryValidator: "프라이머리 검증자",
+    feeRecipient: "수수료 수신자",
+    consensusPosition: "합의 위치",
     bytes: "바이트",
     blockTxns: "이 블록의 트랜잭션",
     transaction: "트랜잭션",

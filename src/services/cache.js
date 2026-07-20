@@ -43,7 +43,9 @@ if (typeof window !== "undefined" && window.sessionStorage) {
           if (!v || typeof v !== "object") continue;
           if (typeof v.expiry !== "number" || !Number.isFinite(v.expiry)) continue;
           if (v.expiry <= now) continue;
-          if (v.value === undefined) continue;
+          if (!("data" in v)) continue;
+          if (typeof v.timestamp !== "number" || !Number.isFinite(v.timestamp)) continue;
+          if (typeof v.ttl !== "number" || !Number.isFinite(v.ttl) || v.ttl <= 0) continue;
           cache.set(k, v);
         }
       }

@@ -100,6 +100,15 @@ describe("neox rpcService", () => {
         id: 1,
         method: "eth_call", params: [callObj, "latest"] });
     });
+
+    it("accepts an explicit historical block tag", async () => {
+      globalThis.fetch.mockResolvedValueOnce(jsonResponse({ jsonrpc: "2.0", id: 1, result: "0xbeef" }));
+
+      const callObj = { to: "0x1212000000000000000000000000000000000001", data: "0x9f9d7f81" };
+      await rpcService.ethCall(callObj, { net: NET, blockTag: "0x6d1b05" });
+
+      expect(lastRequestBody().params).toEqual([callObj, "0x6d1b05"]);
+    });
   });
 
   describe("getRpcBlockNumber", () => {

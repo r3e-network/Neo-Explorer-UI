@@ -6,6 +6,11 @@
         <div class="hero-overlay"></div>
         <div class="page-container relative z-30 py-10 md:py-14">
           <div class="mx-auto max-w-3xl text-center">
+            <img
+              src="/img/brand/neox-logo-white.svg"
+              alt="Neo X"
+              class="mx-auto mb-4 h-9 w-auto object-contain md:h-10"
+            />
             <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl neon-glow-text">
               {{ tf("pageTitles.xHome", "Neo X Explorer") }}
             </h1>
@@ -136,8 +141,8 @@
               <div>
                 <div class="stat-label">{{ tf("neoX.latestBlock", "Latest Block") }}</div>
                 <div class="stat-value">
-                  <Skeleton v-if="statsLoading && !stats" width="80px" height="28px" class="mt-1 inline-block" />
-                  <AnimatedNumber v-else-if="stats" :value="stats.totalBlocks" />
+                  <Skeleton v-if="blocksLoading && latestBlockHeight == null" width="80px" height="28px" class="mt-1 inline-block" />
+                  <AnimatedNumber v-else-if="latestBlockHeight != null" :value="latestBlockHeight" />
                   <span v-else>—</span>
                 </div>
               </div>
@@ -266,14 +271,14 @@
     <!-- Latest Blocks + Latest Transactions -->
     <section class="page-shell animate-page-enter animate-page-enter-delay-2">
       <div class="page-container py-1">
-        <div class="grid items-start gap-4 lg:grid-cols-2">
-          <article class="etherscan-card overflow-hidden">
+        <div class="grid items-stretch gap-4 xl:grid-cols-2">
+          <article class="etherscan-card flex h-full flex-col overflow-hidden">
             <header class="card-header">
               <h2 class="text-high text-base font-semibold">{{ tf("neoX.latestBlocks", "Latest Blocks") }}</h2>
               <RouterLink to="/x/blocks" class="btn-outline text-xs">{{ tf("neoX.viewAll", "View All") }}</RouterLink>
             </header>
-            <div v-if="blocksLoading && !latestBlocks.length" class="space-y-2 p-4">
-              <Skeleton v-for="i in 6" :key="i" height="54px" />
+            <div v-if="blocksLoading && !latestBlocks.length" class="grid flex-1 grid-rows-6 gap-2 p-4">
+              <Skeleton v-for="i in LATEST_ROWS" :key="i" height="54px" />
             </div>
             <div v-else-if="blocksError && !latestBlocks.length" class="p-4">
               <ErrorState
@@ -282,20 +287,20 @@
                 @retry="loadAll"
               />
             </div>
-            <TransitionGroup v-else name="list" tag="div">
+            <TransitionGroup v-else name="list" tag="div" class="relative grid flex-1 grid-rows-6 overflow-hidden">
               <XBlockListItem v-for="block in latestBlocks" :key="block.hash || block.index" :block="block" />
             </TransitionGroup>
           </article>
 
-          <article class="etherscan-card overflow-hidden">
+          <article class="etherscan-card flex h-full flex-col overflow-hidden">
             <header class="card-header">
               <h2 class="text-high text-base font-semibold">{{ tf("neoX.latestTxns", "Latest Transactions") }}</h2>
               <RouterLink to="/x/transactions" class="btn-outline text-xs">
                 {{ tf("neoX.viewAll", "View All") }}
               </RouterLink>
             </header>
-            <div v-if="txsLoading && !latestTxs.length" class="space-y-2 p-4">
-              <Skeleton v-for="i in 6" :key="i" height="54px" />
+            <div v-if="txsLoading && !latestTxs.length" class="grid flex-1 grid-rows-6 gap-2 p-4">
+              <Skeleton v-for="i in LATEST_ROWS" :key="i" height="54px" />
             </div>
             <div v-else-if="txsError && !latestTxs.length" class="p-4">
               <ErrorState
@@ -304,7 +309,7 @@
                 @retry="loadAll"
               />
             </div>
-            <TransitionGroup v-else name="list" tag="div">
+            <TransitionGroup v-else name="list" tag="div" class="relative grid flex-1 grid-rows-6 overflow-hidden">
               <XTxListItem v-for="tx in latestTxs" :key="tx.hash" :tx="tx" />
             </TransitionGroup>
           </article>
@@ -335,9 +340,10 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet, getNeoxLabel, getNeoxRefreshIntervalMs } from "@/utils/neoxEnv";
 import { statsService, blockService, transactionService, searchService, rpcService } from "@/services/neox";
 import { formatInt } from "@/utils/neoxFormat";
+import { NEOX_HOME_FEED_ROWS, readHomeFeed, reconcileHomeFeed } from "@/services/neox/homeFeedCache";
 
 const SEARCH_DEBOUNCE_MS = 300;
-const LATEST_ROWS = 6;
+const LATEST_ROWS = NEOX_HOME_FEED_ROWS;
 
 const router = useRouter();
 const { t } = useI18n();
@@ -360,6 +366,12 @@ const txsError = ref(false);
 const activeNet = ref(getNeoxNet());
 
 const netLabel = computed(() => getNeoxLabel(activeNet.value));
+const latestBlockHeight = computed(() => {
+  const heights = [stats.value?.totalBlocks, ...latestBlocks.value.map((block) => block?.index)]
+    .map(Number)
+    .filter(Number.isFinite);
+  return heights.length ? Math.max(...heights) : null;
+});
 
 const gasPriceLabel = computed(() => {
   const prices = stats.value?.gasPrices;
@@ -409,9 +421,18 @@ async function loadAll({ silent = false } = {}) {
   activeNet.value = net;
 
   if (!silent) {
+    const cachedBlocks = readHomeFeed(net, "blocks", LATEST_ROWS);
+    const cachedTxs = readHomeFeed(net, "transactions", LATEST_ROWS);
+    stats.value = null;
+    indexing.value = null;
+    mempool.value = null;
+    latestBlocks.value = cachedBlocks;
+    latestTxs.value = cachedTxs;
+    blocksError.value = false;
+    txsError.value = false;
     statsLoading.value = true;
-    blocksLoading.value = true;
-    txsLoading.value = true;
+    blocksLoading.value = cachedBlocks.length === 0;
+    txsLoading.value = cachedTxs.length === 0;
   }
 
   const [s, idx, b, tx, pool] = await Promise.allSettled([
@@ -428,7 +449,11 @@ async function loadAll({ silent = false } = {}) {
   } else if (!silent) {
     stats.value = null;
   }
-  indexing.value = idx.status === "fulfilled" ? idx.value : indexing.value;
+  if (idx.status === "fulfilled") {
+    indexing.value = idx.value;
+  } else if (!silent) {
+    indexing.value = null;
+  }
   if (pool.status === "fulfilled") {
     mempool.value = pool.value;
   } else if (!silent) {
@@ -436,13 +461,13 @@ async function loadAll({ silent = false } = {}) {
   }
 
   if (b.status === "fulfilled") {
-    latestBlocks.value = Array.isArray(b.value) ? b.value : [];
+    latestBlocks.value = reconcileHomeFeed(latestBlocks.value, b.value, "blocks", LATEST_ROWS);
     blocksError.value = false;
   } else {
     blocksError.value = true;
   }
   if (tx.status === "fulfilled") {
-    latestTxs.value = Array.isArray(tx.value) ? tx.value : [];
+    latestTxs.value = reconcileHomeFeed(latestTxs.value, tx.value, "transactions", LATEST_ROWS);
     txsError.value = false;
   } else {
     txsError.value = true;

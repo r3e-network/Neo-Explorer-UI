@@ -3,6 +3,8 @@ import { defineComponent, h, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import { useCursorList } from "../../src/composables/useCursorList.js";
 
+const mountedWrappers = new Set();
+
 // Mount the composable inside a throwaway component so its onMounted/
 // onBeforeUnmount lifecycle actually runs.
 function mountCursorList(fetchPage) {
@@ -15,12 +17,21 @@ function mountCursorList(fetchPage) {
       },
     }),
   );
+  mountedWrappers.add(wrapper);
   return { api, wrapper };
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => {
+  for (const wrapper of mountedWrappers) {
+    try {
+      wrapper.unmount();
+    } catch {
+      // Already unmounted by the test.
+    }
+  }
+  mountedWrappers.clear();
   vi.useRealTimers();
 });
 
@@ -104,6 +115,31 @@ describe("useCursorList", () => {
     await nextTick();
     expect(fetchPage.mock.calls[1][0]).toBeNull();
     expect(api.items.value.map((i) => i.hash)).toEqual(["0xz"]);
+  });
+
+  it("clears rows synchronously when the selected network changes", async () => {
+    let resolveNext;
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [{ hash: "0xmainnet" }], nextPageParams: { p: 2 } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveNext = resolve;
+          })
+      );
+    const { api } = mountCursorList(fetchPage);
+    await flush();
+
+    window.dispatchEvent(new CustomEvent("neo-explorer-network-change"));
+
+    expect(api.items.value).toEqual([]);
+    expect(api.hasMore.value).toBe(false);
+    expect(api.loading.value).toBe(true);
+
+    resolveNext({ items: [{ hash: "0xtestnet" }], nextPageParams: null });
+    await flush();
+    expect(api.items.value.map((item) => item.hash)).toEqual(["0xtestnet"]);
   });
 
   it("a superseded slow response never overwrites the newer one", async () => {

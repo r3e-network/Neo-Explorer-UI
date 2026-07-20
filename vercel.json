@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install",
+  "devCommand": "npm run dev -- --host 127.0.0.1 --port $PORT",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "crons": [
@@ -174,19 +175,19 @@
       "destination": "https://api.n3index.dev/rest/v1/$1"
     },
     {
-      "source": "/neox/(.*)",
-      "destination": "/api/neox/$1"
+      "source": "/neox/:net/:path*",
+      "destination": "/api/neox"
     },
     {
-      "source": "/neox-stats/(.*)",
-      "destination": "/api/neox-stats/$1"
+      "source": "/neox-stats/:net/:path*",
+      "destination": "/api/neox-stats"
     },
     {
-      "source": "/neox-rpc/(.*)",
-      "destination": "/api/neox-rpc/$1"
+      "source": "/neox-rpc/:net",
+      "destination": "/api/neox-rpc/:net"
     },
     {
-      "source": "/:path((?!api/|rpc/|bpi/|indexer/|data/|neox/|neox-stats/|neox-rpc/|assets/|img/|.*\\..*).*)",
+      "source": "/:path((?!api/|rpc/|bpi/|indexer/|data/|neox/|neox-stats/|neox-rpc/|assets/|img/|@vite/|@id/|@fs/|src/|node_modules/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],

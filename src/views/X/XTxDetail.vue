@@ -61,6 +61,8 @@
       <!-- Transport failure, not a 404 — the not-found state renders separately. -->
       <ErrorState v-else-if="error" :title="tf('neoX.transactionsErrorTitle', 'Unable to load transactions')" :message="error" @retry="load" />
 
+      <EmptyState v-else-if="notFound" :message="tf('neoX.notFound', 'Transaction not found.')" icon="tx" />
+
       <!-- Tabbed content -->
       <template v-else-if="tx">
         <!-- One-line action summary banner -->
@@ -353,6 +355,7 @@ import { buildTxActionSummary } from "@/utils/txActionSummary";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 import TabsNav from "@/components/common/TabsNav.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
@@ -375,6 +378,7 @@ const tf = (key, fallback) => {
 const tx = ref(null);
 const loading = ref(false);
 const error = ref("");
+const notFound = ref(false);
 const activeTab = ref("overview");
 const logsCount = ref(null);
 let reqId = 0;
@@ -453,8 +457,10 @@ async function load() {
   const hash = route.params.txhash;
   if (!hash) return;
   const current = ++reqId;
+  tx.value = null;
   loading.value = true;
   error.value = "";
+  notFound.value = false;
   activeTab.value = "overview";
   logsCount.value = null;
   try {
@@ -463,7 +469,7 @@ async function load() {
     if (current !== reqId) return;
     tx.value = found;
     if (!found) {
-      error.value = tf("neoX.notFound", "Transaction not found.");
+      notFound.value = true;
     }
   } catch (_err) {
     if (current === reqId) {

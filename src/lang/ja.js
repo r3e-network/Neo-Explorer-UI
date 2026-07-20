@@ -1,5 +1,6 @@
 const ja = {
   neoX: {
+    footerDescription: "Neo X のブロック、トランザクション、アカウント、トークン、コントラクト、ネットワーク活動を確認できます。",
     evmChain: "EVM サイドチェーン",
     viewN3: "Neo N3 を見る →",
     upstreamUnavailable: "Neo X エクスプローラーのデータは一時的に利用できません。",
@@ -15,6 +16,9 @@ const ja = {
     gasUsedLimit: "ガス使用 / 上限",
     baseFee: "基本手数料",
     validator: "バリデーター",
+    primaryValidator: "プライマリバリデーター",
+    feeRecipient: "手数料受取先",
+    consensusPosition: "コンセンサス順位",
     bytes: "バイト",
     blockTxns: "このブロックのトランザクション",
     transaction: "トランザクション",

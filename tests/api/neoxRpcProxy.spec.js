@@ -71,7 +71,7 @@ describe("neox-rpc proxy", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual(upstreamPayload);
     const [url, init] = globalThis.fetch.mock.calls[0];
-    expect(url).toBe("https://mainnet-1.rpc.banelabs.org");
+    expect(url).toBe("https://mainnet-2.rpc.banelabs.org");
     expect(JSON.parse(init.body)).toEqual({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] });
   });
 

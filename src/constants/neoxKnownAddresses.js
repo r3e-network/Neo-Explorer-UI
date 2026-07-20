@@ -35,7 +35,7 @@ export const NEOX_KNOWN_ADDRESSES = [
   { address: "0x1212000000000000000000000000000000000000", network: "both", label: "GovProxyAdmin", role: "governance" },
   { address: "0x1212000000000000000000000000000000000001", network: "both", label: "Governance", role: "governance" },
   { address: "0x1212000000000000000000000000000000000002", network: "both", label: "Policy", role: "governance" },
-  { address: "0x1212000000000000000000000000000000000003", network: "both", label: "Governance Reward", role: "validator" },
+  { address: "0x1212000000000000000000000000000000000003", network: "both", label: "Governance Reward", role: "governance" },
   { address: "0x1212000000000000000000000000000000000004", network: "both", label: "Neo X Bridge (TokenBridge)", role: "bridge" },
   { address: "0x1212000000000000000000000000000000000005", network: "both", label: "Bridge Management", role: "bridge" },
   { address: "0x1212000000000000000000000000000000000006", network: "both", label: "Treasury", role: "infra" },
@@ -52,6 +52,18 @@ export const NEOX_KNOWN_ADDRESSES = [
 
   // ── Oracle ──
   { address: "0xce6138E61e5727a318D0DebEaD99Aff24B929131", network: "both", label: "Neo Oracle Gateway Proxy", role: "oracle" },
+  { address: "0x8B506d2616671b6742b968C18bEFdA1e665A9025", network: "mainnet", label: "Supra Pull Oracle", role: "oracle" },
+  { address: "0xc99c8510D9FF355CD664F9412bdD645c5e25a7f1", network: "testnet", label: "Supra Pull Oracle", role: "oracle" },
+  { address: "0x58e158c74DF7Ad6396C0dcbadc4878faC9e93d57", network: "mainnet", label: "Supra Oracle Storage", role: "oracle" },
+  { address: "0x5df499C9DB456154F81121282c0cB16b59e74C4b", network: "testnet", label: "Supra Oracle Storage", role: "oracle" },
+  { address: "0xBB0f96cede5728D69409340be459A864478e9222", network: "mainnet", label: "Supra wBTC/USDT Feed", role: "oracle" },
+  { address: "0xd6869E35e568Aa6BF481Fda57ac38f7353AF596F", network: "mainnet", label: "Supra WETH/USDT Feed", role: "oracle" },
+  { address: "0x8fd2622c2CA0d7f8Bd0e2Ee98B143213dBcF4975", network: "mainnet", label: "Supra NEO/USDT Feed", role: "oracle" },
+  { address: "0xe38231C17771f02fEE44B5275B3625Bf67817120", network: "mainnet", label: "Supra GAS/USDT Feed", role: "oracle" },
+  { address: "0x99f4800f8958Caf403688b988f683188dF36CEaF", network: "testnet", label: "Supra wBTC/USDT Feed", role: "oracle" },
+  { address: "0xB29f673C3bA1657b2F0ef160dD60425deB67BD38", network: "testnet", label: "Supra WETH/USDT Feed", role: "oracle" },
+  { address: "0xe027fE13ae0a9d302A1338b861de64EBb9c6b1b1", network: "testnet", label: "Supra NEO/USDT Feed", role: "oracle" },
+  { address: "0xE7d292a336c15ab80A51E9b6959b5Ec9eA870474", network: "testnet", label: "Supra GAS/USDT Feed", role: "oracle" },
 
   // ── Developer infrastructure ──
   { address: "0xD6010D102015fEa9cB3a9AbFBB51994c0Fd6E672", network: "mainnet", label: "Multicall3", role: "infra" },

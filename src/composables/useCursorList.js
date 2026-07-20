@@ -100,7 +100,17 @@ export function useCursorList(fetchPage) {
   };
   const refresh = () => load({ append: false });
 
-  const onNetworkChange = () => refresh();
+  const onNetworkChange = () => {
+    // A route stays mounted while the chain changes. Clear the old chain's
+    // rows synchronously so its heights, hashes, and counters never appear
+    // under the newly-selected network label.
+    items.value = [];
+    nextCursor.value = null;
+    hasMore.value = false;
+    error.value = null;
+    seen.clear();
+    refresh();
+  };
 
   onMounted(() => {
     window.addEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);

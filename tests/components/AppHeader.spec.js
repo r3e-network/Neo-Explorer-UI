@@ -18,6 +18,7 @@ vi.mock("vue-i18n", async (importOriginal) => {
 });
 
 const pushMock = vi.fn();
+const routeMock = vi.hoisted(() => ({ fullPath: "/homepage", path: "/homepage", params: {}, query: {} }));
 const fetchPricesMock = vi.fn();
 const initWalletMock = vi.fn();
 const disconnectWalletMock = vi.fn();
@@ -49,7 +50,7 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: pushMock,
   }),
-  useRoute: () => ({ fullPath: "/homepage", params: {}, query: {} }),
+  useRoute: () => routeMock,
 }));
 
 vi.mock("@/composables/usePriceCache", () => ({
@@ -94,6 +95,10 @@ describe("AppHeader wallet CTA", () => {
     walletState.walletNetworkError.value = "";
     localStorage.clear();
     sessionStorage.clear();
+    routeMock.fullPath = "/homepage";
+    routeMock.path = "/homepage";
+    routeMock.params = {};
+    routeMock.query = {};
     fetchPricesMock.mockResolvedValue({
       neo: 0,
       gas: 0,
@@ -140,6 +145,63 @@ describe("AppHeader wallet CTA", () => {
     expect(button.attributes("class")).toContain("shrink-0");
     expect(button.attributes("class")).toContain("whitespace-nowrap");
     expect(button.attributes("class")).toContain("min-w-[10rem]");
+  });
+
+  it("uses the official Neo X brand on Neo X routes", async () => {
+    routeMock.fullPath = "/x";
+    routeMock.path = "/x";
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const logo = wrapper.find('img[alt="Neo X logo"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("/img/brand/neox-mark.svg");
+    expect(wrapper.text()).toContain("Neo X Explorer");
+  });
+
+  it("updates the Neo X network label while price loading is still pending", async () => {
+    routeMock.fullPath = "/x";
+    routeMock.path = "/x";
+    fetchPricesMock.mockReturnValueOnce(new Promise(() => {}));
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    window.dispatchEvent(new CustomEvent("network-change", { detail: { neoxNet: "neox-testnet" } }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "UtilityBar" }).props("currentNetworkLabel")).toBe("Neo X Testnet");
   });
 
   it("shows all supported wallet options even when only some are available", async () => {

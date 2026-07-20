@@ -63,7 +63,7 @@
         </table>
       </div>
       <div v-if="holders.length" class="soft-divider border-t px-4 py-3">
-        <InfiniteScroll :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
+        <InfiniteScroll :auto="false" :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
       </div>
     </template>
   </div>

@@ -5,12 +5,12 @@
         :items="[
           { label: tf('breadcrumb.home', 'Home'), to: '/homepage' },
           { label: 'Neo X', to: '/x' },
-          { label: shortHash(addr, 8, 6) },
+          { label: displayName || shortHash(addr, 8, 6) },
         ]"
       />
 
       <!-- HERO -->
-      <div v-if="!error" class="detail-hero detail-hero-circuit detail-hero-enhanced animate-page-enter">
+      <div v-if="!error && !notFound && !loading && account" class="detail-hero detail-hero-circuit detail-hero-enhanced animate-page-enter">
         <span class="circuit-particle"></span>
         <span class="circuit-particle"></span>
         <span class="circuit-particle"></span>
@@ -41,13 +41,13 @@
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
               <h1 class="page-title neon-glow-text">
-                {{ isContract ? tf("neoX.contract", "Contract") : tf("neoX.address", "Address") }}
+                {{ displayName || (isContract ? tf("neoX.contract", "Contract") : tf("neoX.address", "Address")) }}
               </h1>
               <span
-                v-if="isContract"
-                class="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
+                v-if="displayName"
+                class="badge-soft px-2.5 py-1 text-xs font-semibold"
               >
-                {{ tf("neoX.contract", "Contract") }}
+                {{ isContract ? tf("neoX.contract", "Contract") : tf("neoX.address", "Address") }}
               </span>
               <span
                 v-if="account?.isVerified"
@@ -62,7 +62,6 @@
                 </svg>
                 {{ tf("neoX.verified", "Verified") }}
               </span>
-              <span v-if="displayName" class="badge-soft">{{ displayName }}</span>
               <span
                 v-if="account?.isScam"
                 class="inline-flex items-center rounded bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error"
@@ -98,6 +97,8 @@
         :message="tf('errors.loadFailed', 'Failed to load address.')"
         @retry="loadOverview"
       />
+
+      <EmptyState v-else-if="notFound" :message="tf('neoX.notFound', 'Address not found.')" icon="default" />
 
       <template v-else>
         <!-- STATS -->
@@ -242,6 +243,7 @@ import TabsNav from "@/components/common/TabsNav.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import XHashLink from "@/components/common/XHashLink.vue";
 import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
@@ -265,6 +267,7 @@ const account = ref(null);
 const counters = ref(null);
 const loading = ref(false);
 const error = ref(false);
+const notFound = ref(false);
 const activeTab = ref("transactions");
 let reqId = 0;
 
@@ -312,8 +315,11 @@ async function loadOverview() {
   const address = addr.value;
   if (!address) return;
   const current = ++reqId;
+  account.value = null;
+  counters.value = null;
   loading.value = true;
   error.value = false;
+  notFound.value = false;
   try {
     const net = getNeoxNet();
     // Counters run detached: their warm-up retry can take ~1.5s and must not
@@ -328,6 +334,7 @@ async function loadOverview() {
     const overview = await accountService.getByAddress(address, { net });
     if (current !== reqId) return;
     account.value = overview;
+    notFound.value = !overview;
   } catch (_err) {
     if (current === reqId) error.value = true;
   } finally {

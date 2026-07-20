@@ -1,5 +1,6 @@
 const en = {
   neoX: {
+    footerDescription: "Explore Neo X blocks, transactions, accounts, tokens, contracts, and network activity.",
     evmChain: "EVM sidechain",
     viewN3: "View Neo N3 →",
     upstreamUnavailable: "Neo X explorer data is temporarily unavailable.",
@@ -15,6 +16,9 @@ const en = {
     gasUsedLimit: "Gas Used / Limit",
     baseFee: "Base Fee",
     validator: "Validator",
+    primaryValidator: "Primary Validator",
+    feeRecipient: "Fee Recipient",
+    consensusPosition: "Consensus Position",
     bytes: "bytes",
     blockTxns: "Transactions in this block",
     transaction: "Transaction",

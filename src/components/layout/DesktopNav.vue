@@ -227,7 +227,7 @@ function handleFocusOut(name) {
 
 <style scoped>
 .nav-link {
-  @apply inline-flex items-center rounded-xl px-3 py-2 text-sm font-bold text-gray-800 dark:text-gray-200 transition-all duration-300 2xl:px-4;
+  @apply inline-flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold text-gray-800 dark:text-gray-200 transition-all duration-300 2xl:px-4;
 }
 
 .nav-link:hover {

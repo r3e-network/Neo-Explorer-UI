@@ -209,7 +209,7 @@ describe("adapters/neox toXBlock extensions", () => {
       transaction_fees: "6108542755502576",
       internal_transactions_count: 9,
       withdrawals_count: 0,
-      nonce: "0x0000000000000000",
+      nonce: "0x0000000000000003",
       difficulty: "2",
       miner: { hash: "0x1212000000000000000000000000000000000003", name: "ERC1967Proxy", is_verified: true },
     };
@@ -221,7 +221,8 @@ describe("adapters/neox toXBlock extensions", () => {
     expect(block.transactionFees).toBe("6108542755502576");
     expect(block.internalTransactionsCount).toBe(9);
     expect(block.withdrawalsCount).toBe(0);
-    expect(block.nonce).toBe("0x0000000000000000");
+    expect(block.nonce).toBe("0x0000000000000003");
+    expect(block.primaryIndex).toBe(3);
     expect(block.difficulty).toBe("2");
     expect(block.miner).toBe("0x1212000000000000000000000000000000000003");
     expect(block.minerInfo.name).toBe("ERC1967Proxy");
@@ -234,7 +235,13 @@ describe("adapters/neox toXBlock extensions", () => {
     expect(block.burntFeesPercentage).toBeNull();
     expect(block.internalTransactionsCount).toBe(0);
     expect(block.withdrawalsCount).toBe(0);
+    expect(block.primaryIndex).toBeNull();
     expect(block.minerInfo).toBeNull();
+  });
+
+  it("rejects malformed or unsafe primary-index nonces", () => {
+    expect(toXBlock({ height: 1, nonce: "not-hex" }).primaryIndex).toBeNull();
+    expect(toXBlock({ height: 1, nonce: "0x20000000000000" }).primaryIndex).toBeNull();
   });
 });
 

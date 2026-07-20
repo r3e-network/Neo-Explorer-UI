@@ -19,14 +19,14 @@
     <nav class="main-nav relative border-b border-white/10 dark:border-neo-green/10 bg-white/70 dark:bg-[#0a0f1a]/70 shadow-lg backdrop-blur-xl transition-all duration-300">
       <div class="mx-auto flex h-[70px] max-w-[1400px] items-center px-4">
         <!-- Logo -->
-        <router-link to="/homepage" class="mr-4 flex items-center gap-2.5 no-underline group xl:mr-8">
+        <router-link :to="isNeoxRoute ? '/x' : '/homepage'" class="mr-4 flex shrink-0 items-center gap-2.5 no-underline group xl:mr-7">
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 p-1.5 shadow-[0_0_15px_rgba(0,229,153,0.1)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.3)]"
+            class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 p-1.5 shadow-[0_0_15px_rgba(0,229,153,0.1)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.3)]"
           >
-            <img src="/img/brand/neo.png" alt="Neo N3 Logo" class="h-full w-full object-contain" />
+            <img :src="brandLogo" :alt="brandLogoAlt" class="h-full w-full object-contain" />
           </div>
-          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-neo-green bg-clip-text text-transparent transition-all duration-300">
-            Neo Explorer
+          <span class="whitespace-nowrap text-lg font-extrabold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-neo-green bg-clip-text text-transparent transition-all duration-300 2xl:text-xl">
+            {{ brandLabel }}
           </span>
         </router-link>
 
@@ -34,7 +34,7 @@
         <DesktopNav :active-dropdown="activeDropdown" @open-dropdown="openDropdown" @close-dropdown="closeDropdown" />
 
         <!-- Header Search (compact mode) -->
-        <div class="ml-auto hidden w-full max-w-[15rem] items-center lg:flex lg:ml-4 2xl:ml-8 2xl:max-w-sm">
+        <div class="ml-auto hidden w-full max-w-[13rem] items-center lg:ml-4 lg:flex 2xl:ml-8 2xl:max-w-sm">
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
@@ -100,7 +100,7 @@
 
         <!-- Global Wallet Button (desktop) -->
         <button
-          class="ml-2 hidden w-32 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-all lg:inline-flex xl:ml-3 xl:px-4 2xl:w-auto 2xl:min-w-[10rem] shadow-sm active:scale-95"
+          class="ml-2 hidden w-28 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold shadow-sm transition-all active:scale-95 lg:inline-flex 2xl:ml-3 2xl:w-auto 2xl:min-w-[10rem] 2xl:px-4"
           :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 border border-transparent text-white hover:bg-emerald-600 shadow-emerald-500/20'"
           :disabled="walletLoading"
           :aria-label="walletControlAriaLabel"
@@ -151,7 +151,17 @@
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
             {{ walletLoading ? $t('header.connectingWallet') : mobilePanelWalletLabel }}
           </button>
-          <div class="grid grid-cols-2 gap-3 text-sm">
+          <div v-if="isNeoxRoute" class="grid grid-cols-2 gap-3 text-sm">
+            <router-link to="/x" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
+            <router-link to="/x/blocks" class="mobile-link" @click="closeMobile">{{ $t("nav.blocks") }}</router-link>
+            <router-link to="/x/transactions" class="mobile-link" @click="closeMobile">{{ $t("nav.transactions") }}</router-link>
+            <router-link to="/x/tokens" class="mobile-link" @click="closeMobile">{{ $t("nav.tokens") }}</router-link>
+            <router-link to="/x/contracts" class="mobile-link" @click="closeMobile">{{ $t("nav.contracts") }}</router-link>
+            <router-link to="/x/accounts" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
+            <router-link to="/x/charts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
+            <router-link to="/api-docs" class="mobile-link" @click="closeMobile">{{ $t("nav.apiDocs") }}</router-link>
+          </div>
+          <div v-else class="grid grid-cols-2 gap-3 text-sm">
             <router-link to="/homepage" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
             <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">{{ $t("nav.blocks") }}</router-link>
             <router-link to="/transactions/1" class="mobile-link" @click="closeMobile">{{ $t("nav.transactions") }}</router-link>
@@ -295,6 +305,9 @@ const chatNotificationsOpen = ref(false);
 // labels the active selection accordingly, while `currentNetwork` stays the N3
 // env for wallet/validation logic.
 const isNeoxRoute = computed(() => String(route.path || "").startsWith("/x"));
+const brandLogo = computed(() => (isNeoxRoute.value ? "/img/brand/neox-mark.svg" : "/img/brand/neo.png"));
+const brandLogoAlt = computed(() => (isNeoxRoute.value ? "Neo X logo" : "Neo logo"));
+const brandLabel = computed(() => (isNeoxRoute.value ? "Neo X Explorer" : "Neo Explorer"));
 const activeSelectionId = computed(() => (isNeoxRoute.value ? activeNeoxNet.value : currentNetwork.value));
 const currentNetworkLabel = computed(() =>
   isNeoxRoute.value ? getNeoxLabel(activeNeoxNet.value) : getNetworkLabel(currentNetwork.value)
@@ -691,17 +704,13 @@ function handleChatNotificationClick(notification) {
   })).catch(() => {});
 }
 
-onMounted(async () => {
+onMounted(() => {
   currentNetwork.value = getCurrentEnv();
+  activeNeoxNet.value = getNeoxNet();
 
-  // Initialize wallet state
-  void Promise.resolve(initWallet()).then(() => bootstrapChatSession());
-
-  try {
-    await loadPrices();
-  } catch (err) {
-    if (import.meta.env.DEV) console.error("Failed to load prices:", err);
-  }
+  // Register interaction listeners before any remote bootstrap work. Price or
+  // wallet initialization can be slow, but network switches must remain
+  // immediately reactive and cannot be lost while those requests are pending.
   window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   window.addEventListener("focus", refreshOpenWalletModalAvailability);
   window.addEventListener("NEOLine.NEO.EVENT.READY", refreshOpenWalletModalAvailability);
@@ -709,6 +718,13 @@ onMounted(async () => {
   window.addEventListener("ethereum#initialized", refreshOpenWalletModalAvailability);
   document.addEventListener("visibilitychange", handleDocumentVisibilityChange);
   document.addEventListener("click", handleClickOutside);
+
+  // Initialize wallet state
+  void Promise.resolve(initWallet()).then(() => bootstrapChatSession());
+
+  void loadPrices().catch((err) => {
+    if (import.meta.env.DEV) console.error("Failed to load prices:", err);
+  });
 });
 
 onActivated(() => {

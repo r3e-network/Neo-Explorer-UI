@@ -1,5 +1,6 @@
 const fr = {
   neoX: {
+    footerDescription: "Explorez les blocs, transactions, comptes, jetons, contrats et l'activité du réseau Neo X.",
     evmChain: "Chaîne latérale EVM",
     viewN3: "Voir Neo N3 →",
     upstreamUnavailable: "Les données de l'explorateur Neo X sont temporairement indisponibles.",
@@ -15,6 +16,9 @@ const fr = {
     gasUsedLimit: "Gas utilisé / limite",
     baseFee: "Frais de base",
     validator: "Validateur",
+    primaryValidator: "Validateur primaire",
+    feeRecipient: "Destinataire des frais",
+    consensusPosition: "Position de consensus",
     bytes: "octets",
     blockTxns: "Transactions de ce bloc",
     transaction: "Transaction",

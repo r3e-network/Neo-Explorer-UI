@@ -11,7 +11,7 @@
             <th scope="col" class="table-header-cell hidden xl:table-cell">{{ tf("neoX.gasLimit", "Gas Limit") }}</th>
             <th scope="col" class="table-header-cell hidden xl:table-cell">{{ tf("neoX.baseFee", "Base Fee") }}</th>
             <th scope="col" class="table-header-cell hidden lg:table-cell">{{ tf("neoX.burntFees", "Burnt Fees") }}</th>
-            <th scope="col" class="table-header-cell">{{ tf("neoX.validator", "Validator") }}</th>
+            <th scope="col" class="table-header-cell">{{ tf("neoX.primaryValidator", "Primary Validator") }}</th>
           </template>
         </tr>
       </thead>
@@ -50,11 +50,16 @@
               <span v-else class="text-low">—</span>
             </td>
             <td class="table-cell">
-              <!-- No :name here: the identity registry labels the coinbase
-                   (0x1212...0003 → "Governance Reward") instead of Blockscout's
-                   generic proxy name (ERC1967Proxy). -->
-              <XHashLink v-if="block.miner" type="address" :hash="block.miner" />
-              <span v-else class="text-mid">—</span>
+              <div class="flex min-w-0 items-center gap-1.5">
+                <XHashLink v-if="block.primaryValidator" type="address" :hash="block.primaryValidator" />
+                <span v-else-if="block.primaryPosition != null" class="whitespace-nowrap text-mid">
+                  {{ tf("neoX.consensusPosition", "Consensus Position") }} #{{ block.primaryPosition }}
+                </span>
+                <span v-else class="text-mid">—</span>
+                <span v-if="block.primaryValidator && block.primaryPosition != null" class="badge-soft whitespace-nowrap text-[10px]">
+                  #{{ block.primaryPosition }}<template v-if="block.consensusSize">/{{ block.consensusSize }}</template>
+                </span>
+              </div>
             </td>
           </template>
         </tr>

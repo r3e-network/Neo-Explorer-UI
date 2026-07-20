@@ -37,11 +37,12 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import { shortHash } from "@/utils/neoxFormat";
 import { resolveNeoxIdentity } from "@/constants/neoxKnownAddresses";
 import { getNeoxNet } from "@/utils/neoxEnv";
+import { NETWORK_CHANGE_EVENT } from "@/utils/env";
 
 // Lean, EVM-only link component for /x views. Intentionally separate from the
 // deeply N3-coupled HashLink (base58 conversion, NNS, validator lookups) so the
@@ -84,13 +85,22 @@ const IDENTITY_TYPES = new Set(["address", "contract", "token"]);
 
 const value = computed(() => String(props.hash ?? ""));
 
-// Registry lookup, computed once per hash. The curated registry OUTRANKS the
+const currentNet = ref(getNeoxNet());
+
+// Registry lookup is reactive across both prop and Neo X network changes. The curated registry OUTRANKS the
 // Blockscout-supplied `name`: official identities (bridge/oracle/governance…)
 // must win over generic on-chain names like "ERC1967Proxy".
 const registryIdentity = computed(() => {
   if (!props.identity || !IDENTITY_TYPES.has(props.type)) return null;
-  return resolveNeoxIdentity(value.value, getNeoxNet());
+  return resolveNeoxIdentity(value.value, currentNet.value);
 });
+
+const handleNetworkChange = (event) => {
+  if (event?.detail?.neoxNet) currentNet.value = event.detail.neoxNet;
+};
+
+onMounted(() => window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange));
+onBeforeUnmount(() => window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange));
 
 const to = computed(() => {
   const v = value.value;

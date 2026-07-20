@@ -18,7 +18,7 @@ const DEFAULT_NEOX_TESTNET_PROXY_TARGET = "https://xt4scan.ngd.network";
 // proxy straight to the upstreams here.
 const DEFAULT_NEOX_MAINNET_STATS_PROXY_TARGET = "https://xexplorer.neo.org:8080";
 const DEFAULT_NEOX_TESTNET_STATS_PROXY_TARGET = "https://xt4scan.ngd.network:8080";
-const DEFAULT_NEOX_MAINNET_RPC_PROXY_TARGET = "https://mainnet-1.rpc.banelabs.org";
+const DEFAULT_NEOX_MAINNET_RPC_PROXY_TARGET = "https://mainnet-2.rpc.banelabs.org";
 const DEFAULT_NEOX_TESTNET_RPC_PROXY_TARGET = "https://testnet-1.rpc.banelabs.org";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";

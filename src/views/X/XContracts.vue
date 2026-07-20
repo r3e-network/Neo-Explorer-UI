@@ -159,7 +159,7 @@
 
         <!-- Pagination -->
         <div v-if="!loading && items.length > 0" class="soft-divider border-t px-4 py-3">
-          <InfiniteScroll :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
+          <InfiniteScroll :auto="false" :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
         </div>
       </div>
     </section>
@@ -232,6 +232,7 @@ function formatLicense(licenseType) {
 
 async function loadCounters() {
   const current = ++countersReqId;
+  counters.value = null;
   countersLoading.value = true;
   try {
     const data = await contractService.getCounters({ net: getNeoxNet() });

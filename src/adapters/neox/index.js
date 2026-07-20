@@ -36,6 +36,18 @@ function toNumOrNull(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Neo X stores the dBFT primary index as a big-endian uint64 nonce. */
+function toPrimaryIndex(value) {
+  if (value === undefined || value === null || value === "") return null;
+  try {
+    const parsed = BigInt(value);
+    if (parsed < 0n || parsed > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    return Number(parsed);
+  } catch (_err) {
+    return null;
+  }
+}
+
 /** Blockscout addresses appear as either "0x.." or { hash: "0x..", ... }. */
 function addressOf(value) {
   if (!value) return null;
@@ -118,6 +130,7 @@ export function toXBlock(raw) {
     internalTransactionsCount: toInt(raw.internal_transactions_count, 0),
     withdrawalsCount: toInt(raw.withdrawals_count, 0),
     nonce: raw.nonce ?? null,
+    primaryIndex: toPrimaryIndex(raw.nonce),
     difficulty: raw.difficulty ?? null,
     miner: addressOf(raw.miner),
     minerInfo: toXAddressInfo(raw.miner),

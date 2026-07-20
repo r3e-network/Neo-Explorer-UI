@@ -133,10 +133,16 @@ describe("endpoint defaults", () => {
     expect(routeDest("/data/testnet/(.*)")).toBe(
       "https://api.n3index.dev/testnet/$1"
     );
-    expect(routeDest("/neox/(.*)")).toBe("/api/neox/$1");
-    expect(routeDest("/neox-stats/(.*)")).toBe("/api/neox-stats/$1");
-    expect(routeDest("/neox-rpc/(.*)")).toBe("/api/neox-rpc/$1");
-    expect(routeDest("/:path((?!api/|rpc/|bpi/|indexer/|data/|neox/|neox-stats/|neox-rpc/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
+    expect(routeDest("/neox/:net/:path*")).toBe("/api/neox");
+    expect(routeDest("/neox-stats/:net/:path*")).toBe("/api/neox-stats");
+    expect(routeDest("/neox-rpc/:net")).toBe("/api/neox-rpc/:net");
+    expect(vercelConfig.devCommand).toContain("npm run dev");
+    expect(vercelConfig.devCommand).toContain("$PORT");
+    const spaFallback = rewrites.find((rewrite) => rewrite.destination === "/index.html")?.source;
+    expect(spaFallback).toContain("neox-rpc/");
+    for (const vitePath of ["@vite/", "@id/", "@fs/", "src/", "node_modules/"]) {
+      expect(spaFallback).toContain(vitePath);
+    }
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

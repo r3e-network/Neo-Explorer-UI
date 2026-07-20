@@ -9,6 +9,7 @@ import { getNeoxNet, resolveNeoxNetName } from "@/utils/neoxEnv";
 const netOf = (opts) => (typeof opts === "string" ? opts : opts?.net) || getNeoxNet();
 
 const STATS_TIMEOUT_MS = 8000;
+const RATIO_CHART_LINES = new Set(["txnsSuccessRate", "networkUtilization"]);
 
 function toNum(value) {
   const n = Number(value);
@@ -17,7 +18,7 @@ function toNum(value) {
 
 // Local transport for the stats microservice. Mirrors blockscoutClient's
 // fetch/timeout/error conventions but targets the /neox-stats/<net> proxy
-// prefix (api/neox-stats/[...path].js in prod, vite server.proxy in dev), so
+// prefix (api/neox-stats.js in prod, vite server.proxy in dev), so
 // it cannot reuse fetchBlockscout, whose prefix is /neox/<net>.
 async function fetchNeoxStats(net, path, { params = {}, signal, timeoutMs = STATS_TIMEOUT_MS } = {}) {
   const cleanPath = String(path || "").replace(/^\/+/, "");
@@ -62,11 +63,11 @@ async function fetchNeoxStats(net, path, { params = {}, signal, timeoutMs = STAT
 // Normalize one /lines/{id} payload into ascending [{ date, value }] points.
 // Upstream values are numeric strings; rows with a missing date or a
 // non-finite value are dropped rather than rendered as zero.
-function normalizeChartLine(raw) {
+function normalizeChartLine(raw, multiplier = 1) {
   const rows = Array.isArray(raw?.chart) ? raw.chart : [];
   return rows
     .filter((row) => row && typeof row.date === "string" && row.date && row.value !== null && row.value !== undefined)
-    .map((row) => ({ date: row.date, value: Number(row.value) }))
+    .map((row) => ({ date: row.date, value: Number(row.value) * multiplier }))
     .filter((point) => Number.isFinite(point.value))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
@@ -121,11 +122,14 @@ export const statsService = {
    * value: Number }] array; unknown chart ids resolve to [].
    */
   async getChartLine(id, opts = {}) {
-    const data = await fetchNeoxStats(netOf(opts), `lines/${encodeURIComponent(String(id || ""))}`, {
+    const lineId = String(id || "");
+    const data = await fetchNeoxStats(netOf(opts), `lines/${encodeURIComponent(lineId)}`, {
       params: { resolution: "DAY", from: opts.from, to: opts.to },
       signal: opts.signal,
     });
-    return normalizeChartLine(data);
+    // These two upstream lines are ratios in [0, 1], while their UI unit is
+    // percent. Normalize the public service contract once for every chart.
+    return normalizeChartLine(data, RATIO_CHART_LINES.has(lineId) ? 100 : 1);
   },
 
   /** Chart catalog: [{ id, title, charts: [{ id, title, ... }] }] sections. */

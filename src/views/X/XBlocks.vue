@@ -27,7 +27,7 @@
       <div class="mb-5 grid grid-cols-2 gap-4 animate-page-enter animate-page-enter-delay-1">
         <DashboardStatCard
           :label="tf('neoX.statTotalBlocks', 'Total Blocks')"
-          :value="stats ? stats.totalBlocks : null"
+          :value="currentBlockHeight"
           :animated="!statsLoading"
           :icon="totalBlocksIcon"
           glow-color="#4f8fff"
@@ -84,7 +84,7 @@
 
         <!-- Pagination -->
         <div v-if="!loading && items.length > 0" class="soft-divider border-t px-4 py-3">
-          <InfiniteScroll :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
+          <InfiniteScroll :auto="false" :loading="loadingMore" :has-more="hasMore" @load-more="loadMore" />
         </div>
       </div>
     </section>
@@ -133,6 +133,7 @@ let statsSeq = 0;
 
 async function loadStats() {
   const seq = ++statsSeq;
+  stats.value = null;
   statsLoading.value = true;
   try {
     const result = await statsService.getStats({ net: getNeoxNet() });
@@ -160,6 +161,10 @@ const blockIndices = computed(() =>
 );
 const rangeStart = computed(() => (blockIndices.value.length ? Math.min(...blockIndices.value) : 0));
 const rangeEnd = computed(() => (blockIndices.value.length ? Math.max(...blockIndices.value) : 0));
+const currentBlockHeight = computed(() => {
+  const heights = [stats.value?.totalBlocks, rangeEnd.value].map(Number).filter((value) => Number.isFinite(value) && value > 0);
+  return heights.length ? Math.max(...heights) : null;
+});
 
 onMounted(() => {
   loadStats();

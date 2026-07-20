@@ -70,6 +70,19 @@ describe("neox statsService.getChartLine", () => {
     ]);
   });
 
+  it.each(["txnsSuccessRate", "networkUtilization"])(
+    "converts the %s upstream ratio to a percentage",
+    async (lineId) => {
+      globalThis.fetch.mockResolvedValueOnce(
+        jsonResponse({ chart: [{ date: "2026-07-19", value: "0.972844" }] })
+      );
+
+      expect(await statsService.getChartLine(lineId, { net: NET })).toEqual([
+        { date: "2026-07-19", value: 97.2844 },
+      ]);
+    }
+  );
+
   it("forwards from/to range params when provided", async () => {
     globalThis.fetch.mockResolvedValueOnce(jsonResponse({ chart: [] }));
 

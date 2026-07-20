@@ -1,14 +1,14 @@
 // Neo X (Blockscout v2) read-only REST proxy.
 //
 // The client calls `/neox/<net>/<resource...>` (see src/services/neox/
-// blockscoutClient.js). A vercel.json rewrite maps that to this catch-all
-// function so we can allowlist paths, rate-limit, time out, and degrade
+// blockscoutClient.js). A vercel.json rewrite maps the named path parameters
+// to this stable function so we can allowlist paths, rate-limit, time out, and degrade
 // gracefully instead of letting the SPA talk to the third-party explorer
 // directly. Mirrors the shape of api/network-monitor.js + api/prices.js.
 
-const { withApiTelemetry } = require("../lib/telemetry");
-const { sendJson, methodNotAllowed } = require("../lib/http");
-const { enforceSimpleRateLimit } = require("../lib/simpleRateLimit");
+const { withApiTelemetry } = require("./lib/telemetry");
+const { sendJson, methodNotAllowed } = require("./lib/http");
+const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
 
 module.exports.config = {
   runtime: "nodejs",
@@ -43,7 +43,7 @@ const UNAVAILABLE_PAYLOAD = { error: "Neo X explorer upstream unavailable" };
 function buildQueryString(query) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query || {})) {
-    if (key === "path") continue; // the catch-all route param, not a real query
+    if (key === "net" || key === "path") continue; // rewrite params, not upstream query
     if (Array.isArray(value)) {
       value.forEach((item) => params.append(key, String(item)));
     } else if (value !== undefined && value !== null) {
@@ -54,18 +54,25 @@ function buildQueryString(query) {
   return serialized ? `?${serialized}` : "";
 }
 
+function firstQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function splitPath(value) {
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .flatMap((item) => String(item || "").split("/"))
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
 async function handler(req, res) {
   if (req.method !== "GET") {
     return methodNotAllowed(res, { Allow: "GET" });
   }
 
-  const rawPath = req.query?.path;
-  const segments = (Array.isArray(rawPath) ? rawPath : [rawPath])
-    .map((segment) => String(segment || "").trim())
-    .filter(Boolean);
-
-  const net = segments[0];
-  const rest = segments.slice(1);
+  const net = String(firstQueryValue(req.query?.net) || "").trim();
+  const rest = splitPath(req.query?.path);
 
   if (!UPSTREAM_BASES[net]) {
     return sendJson(res, 400, { error: "Unsupported Neo X network" });

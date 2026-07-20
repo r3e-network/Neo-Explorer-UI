@@ -4,7 +4,7 @@
 // src/services/neox/rpcService.js). A vercel.json rewrite maps that to this
 // function so we can allowlist read-only methods, rate-limit, time out, and
 // degrade gracefully instead of letting the SPA talk to the node directly.
-// Mirrors the shape of api/neox/[...path].js; security-critical: only the
+// Mirrors the shape of api/neox.js; security-critical: only the
 // methods below may ever be relayed — no state-changing, filter, or
 // subscription calls.
 
@@ -18,7 +18,7 @@ module.exports.config = {
 };
 
 const UPSTREAM_BASES = {
-  mainnet: process.env.NEOX_MAINNET_RPC_BASE || "https://mainnet-1.rpc.banelabs.org",
+  mainnet: process.env.NEOX_MAINNET_RPC_BASE || "https://mainnet-2.rpc.banelabs.org",
   testnet: process.env.NEOX_TESTNET_RPC_BASE || "https://testnet-1.rpc.banelabs.org",
 };
 

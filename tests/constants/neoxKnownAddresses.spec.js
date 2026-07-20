@@ -60,6 +60,25 @@ describe("neoxKnownAddresses registry", () => {
     expect(resolveNeoxIdentity(testnetValidator, "neox-mainnet")).toBeNull();
   });
 
+  it("resolves official Supra oracle deployments per network", () => {
+    expect(resolveNeoxIdentity("0x8B506d2616671b6742b968C18bEFdA1e665A9025", "neox-mainnet")).toEqual({
+      label: "Supra Pull Oracle",
+      role: "oracle",
+    });
+    expect(resolveNeoxIdentity("0x8B506d2616671b6742b968C18bEFdA1e665A9025", "neox-testnet")).toBeNull();
+    expect(resolveNeoxIdentity("0xE7d292a336c15ab80A51E9b6959b5Ec9eA870474", "neox-testnet")).toEqual({
+      label: "Supra GAS/USDT Feed",
+      role: "oracle",
+    });
+  });
+
+  it("does not misclassify the fixed Governance Reward coinbase as a validator", () => {
+    expect(resolveNeoxIdentity("0x1212000000000000000000000000000000000003", "neox-mainnet")).toEqual({
+      label: "Governance Reward",
+      role: "governance",
+    });
+  });
+
   it("only uses roles that exist in NEOX_ROLE_META", () => {
     for (const entry of NEOX_KNOWN_ADDRESSES) {
       expect(NEOX_ROLE_META[entry.role], `role "${entry.role}" for ${entry.address}`).toBeDefined();

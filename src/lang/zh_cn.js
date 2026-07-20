@@ -1,5 +1,6 @@
 const zh = {
   neoX: {
+    footerDescription: "探索 Neo X 的区块、交易、账户、代币、合约与网络活动。",
     evmChain: "EVM 侧链",
     viewN3: "查看 Neo N3 →",
     upstreamUnavailable: "Neo X 浏览器数据暂时不可用。",
@@ -15,6 +16,9 @@ const zh = {
     gasUsedLimit: "Gas 使用 / 上限",
     baseFee: "基础费用",
     validator: "验证者",
+    primaryValidator: "主验证节点",
+    feeRecipient: "费用接收方",
+    consensusPosition: "共识位置",
     bytes: "字节",
     blockTxns: "本区块交易",
     transaction: "交易",

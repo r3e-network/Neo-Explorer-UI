@@ -33,6 +33,10 @@ const STABLE_TRACE_TXID = process.env.BROWSER_AUDIT_TRACE_TXID || "0x5f873503cfb
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const FALLBACK_ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const NEOX_BLOCK_INDEX = 7152440;
+const NEOX_TX_HASH = "0xb1d41fc5b4479cf109a01689b580c0330e842c9b029f2b9838dac8ef9a07374d";
+const NEOX_ADDRESS = "0x1212000000000000000000000000000000000004";
+const NEOX_TOKEN_HASH = "0x3e5E77bC7b2092fD0a9Cf9F6cbeB8198d659362d";
 const VIEWPORTS = [
   { label: "desktop", width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false },
   { label: "mobile", width: 390, height: 844, deviceScaleFactor: 2, mobile: true },
@@ -92,6 +96,17 @@ const ROUTES = [
   ["chat", () => "/chat", true],
   ["txExecutionTrace", (d) => `/tx/${encodeURIComponent(d.traceTxid || d.txid)}/trace`],
   ["search", (d) => `/search?keyword=${encodeURIComponent(d.txid)}`],
+  ["xHome", () => "/x"],
+  ["xBlocks", () => "/x/blocks"],
+  ["xBlockDetail", (d) => `/x/block-info/${encodeURIComponent(String(d.neoxBlockIndex))}`],
+  ["xTransactions", () => "/x/transactions"],
+  ["xTxDetail", (d) => `/x/tx/${encodeURIComponent(d.neoxTxHash)}`],
+  ["xAddress", (d) => `/x/address/${encodeURIComponent(d.neoxAddress)}`],
+  ["xTokens", () => "/x/tokens"],
+  ["xToken", (d) => `/x/token/${encodeURIComponent(d.neoxTokenHash)}`],
+  ["xContracts", () => "/x/contracts"],
+  ["xAccounts", () => "/x/accounts"],
+  ["xCharts", () => "/x/charts"],
   ["notFound", () => "/__browser_audit_missing_route__"],
 ].map(([name, makePath, allowAuthFailures = false]) => ({ name, makePath, allowAuthFailures }));
 
@@ -219,6 +234,10 @@ async function discoverData() {
     nftOwnerAddress: nft?.to_address || nft?.from_address || FALLBACK_ADDRESS,
     nftTokenId: nft?.token_id_decoded || nft?.token_id_raw || "0",
     governanceProposalId: governanceRequest?.id || governanceRequest?.proposal_id || "missing",
+    neoxBlockIndex: NEOX_BLOCK_INDEX,
+    neoxTxHash: NEOX_TX_HASH,
+    neoxAddress: NEOX_ADDRESS,
+    neoxTokenHash: NEOX_TOKEN_HASH,
   };
 }
 
