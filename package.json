@@ -6,7 +6,7 @@
     "dev": "vite",
     "prebuild": "node scripts/sync-abstract-account-artifacts.mjs",
     "build": "vite build",
-    "postbuild": "node scripts/copy-decompiler-web-assets.mjs",
+    "postbuild": "node scripts/copy-decompiler-web-assets.mjs && node scripts/generate-route-shells.mjs",
     "preview": "vite preview",
     "lint": "eslint --ext .js,.jsx,.vue src tests",
     "lint-fix": "eslint --fix --ext .js,.jsx,.vue src tests",

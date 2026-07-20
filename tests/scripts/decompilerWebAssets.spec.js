@@ -10,7 +10,8 @@ describe("decompiler web wasm assets", () => {
       "utf8",
     );
 
-    expect(packageJson.scripts.postbuild).toBe("node scripts/copy-decompiler-web-assets.mjs");
+    expect(packageJson.scripts.postbuild).toContain("node scripts/copy-decompiler-web-assets.mjs");
+    expect(packageJson.scripts.postbuild).toContain("node scripts/generate-route-shells.mjs");
     expect(script).toContain("neo-decompiler-web");
     expect(script).toContain('"dist", "pkg"');
     expect(script).toContain('"dist", "assets", "pkg"');
