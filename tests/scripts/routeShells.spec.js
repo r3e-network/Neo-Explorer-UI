@@ -20,7 +20,24 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
 
-describe("Neo X route shell", () => {
+describe("route shells and social cards", () => {
+  it("ships complete Neo N3 crawler metadata in the base shell", async () => {
+    const source = await readFile(path.join(PROJECT_ROOT, "index.html"), "utf8");
+
+    expect(source).toContain("<title>Neo N3 Explorer | Neo3Scan</title>");
+    expect(source).toContain("Explore Neo N3 MainNet and TestNet blocks");
+    expect(source).toContain('property="og:image" content="https://www.neo3scan.com/img/brand/neo3scan-neo-n3-social.png"');
+    expect(source).toContain('name="twitter:image" content="https://www.neo3scan.com/img/brand/neo3scan-neo-n3-social.png"');
+    expect(source).toContain('property="og:image:width" content="1200"');
+    expect(source).toContain('property="og:image:height" content="630"');
+    expect(source).toContain("four-network switching");
+    expect(source).not.toContain("oneGate.png");
+    expect(source).not.toContain('rel="canonical"');
+    expect(source).not.toContain('property="og:url"');
+    expect(occurrences(source, /(?:name|property)="og:image"/g)).toBe(1);
+    expect(occurrences(source, /name="twitter:image"/g)).toBe(1);
+  });
+
   it("replaces crawler metadata while keeping the shared app entry", async () => {
     const source = await readFile(path.join(PROJECT_ROOT, "index.html"), "utf8");
     const shell = buildNeoXShell(source);
@@ -33,10 +50,17 @@ describe("Neo X route shell", () => {
     expect(shell).not.toContain('property="og:url"');
     expect(shell).toContain('property="og:image:width" content="1200"');
     expect(shell).toContain('property="og:image:height" content="630"');
+    expect(shell).toContain(`property="og:image:alt" content="${NEOX_METADATA.imageAlt}"`);
+    expect(shell).toContain(`name="twitter:image:alt" content="${NEOX_METADATA.imageAlt}"`);
     expect(shell).toContain('<script type="module" src="/src/main.js"></script>');
     expect(shell).not.toContain("oneGate.png");
+    expect(shell).not.toContain("neo3scan-neo-n3-social.png");
     expect(occurrences(shell, /<title>/g)).toBe(1);
     expect(occurrences(shell, /(?:name|property)="twitter:title"/g)).toBe(1);
+    expect(occurrences(shell, /property="og:site_name"/g)).toBe(1);
+    expect(occurrences(shell, /property="og:image:width"/g)).toBe(1);
+    expect(occurrences(shell, /property="og:image:alt"/g)).toBe(1);
+    expect(occurrences(shell, /name="twitter:image:alt"/g)).toBe(1);
   });
 
   it("writes x.html without changing the built N3 shell", async () => {
@@ -53,13 +77,16 @@ describe("Neo X route shell", () => {
     expect(neoXShell).toBe(buildNeoXShell(source));
   });
 
-  it("ships a valid 1200 by 630 PNG card", async () => {
-    const imagePath = path.join(PROJECT_ROOT, "public/img/brand/neo3scan-neox-social.png");
-    const metadata = await sharp(imagePath).metadata();
+  it("ships valid 1200 by 630 PNG cards for both explorers", async () => {
+    const imageNames = ["neo3scan-neo-n3-social.png", "neo3scan-neox-social.png"];
 
-    expect(metadata.format).toBe("png");
-    expect(metadata.width).toBe(1200);
-    expect(metadata.height).toBe(630);
+    for (const imageName of imageNames) {
+      const imagePath = path.join(PROJECT_ROOT, "public/img/brand", imageName);
+      const metadata = await sharp(imagePath).metadata();
+      expect(metadata.format).toBe("png");
+      expect(metadata.width).toBe(1200);
+      expect(metadata.height).toBe(630);
+    }
   });
 
   it("routes Neo X pages to x.html before the generic SPA fallback", async () => {

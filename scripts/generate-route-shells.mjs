@@ -40,14 +40,6 @@ function replaceMeta(html, attribute, key, outputAttribute, content) {
   );
 }
 
-function insertBeforeExactlyOnce(html, marker, content, label) {
-  const index = html.indexOf(marker);
-  if (index < 0 || html.indexOf(marker, index + marker.length) >= 0) {
-    throw new Error(`Expected exactly one ${label}`);
-  }
-  return `${html.slice(0, index)}${content}${html.slice(index)}`;
-}
-
 export function buildNeoXShell(indexHtml) {
   let html = replaceExactlyOnce(
     indexHtml,
@@ -60,27 +52,12 @@ export function buildNeoXShell(indexHtml) {
   html = replaceMeta(html, "property", "og:title", "property", NEOX_METADATA.title);
   html = replaceMeta(html, "property", "og:description", "property", NEOX_METADATA.description);
   html = replaceMeta(html, "property", "og:image", "property", NEOX_METADATA.image);
-  html = replaceMeta(html, "property", "twitter:card", "name", "summary_large_image");
-  html = replaceMeta(html, "property", "twitter:title", "name", NEOX_METADATA.title);
-  html = replaceMeta(html, "property", "twitter:description", "name", NEOX_METADATA.description);
-  html = replaceMeta(html, "property", "twitter:image", "name", NEOX_METADATA.image);
-
-  const supplementalMetadata = [
-    `    <meta property="og:site_name" content="Neo3Scan" />`,
-    '    <meta property="og:image:type" content="image/png" />',
-    '    <meta property="og:image:width" content="1200" />',
-    '    <meta property="og:image:height" content="630" />',
-    `    <meta property="og:image:alt" content="${NEOX_METADATA.imageAlt}" />`,
-    `    <meta name="twitter:image:alt" content="${NEOX_METADATA.imageAlt}" />`,
-    "",
-  ].join("\n");
-
-  html = insertBeforeExactlyOnce(
-    html,
-    '    <link rel="icon"',
-    supplementalMetadata,
-    "favicon link",
-  );
+  html = replaceMeta(html, "name", "twitter:card", "name", "summary_large_image");
+  html = replaceMeta(html, "name", "twitter:title", "name", NEOX_METADATA.title);
+  html = replaceMeta(html, "name", "twitter:description", "name", NEOX_METADATA.description);
+  html = replaceMeta(html, "name", "twitter:image", "name", NEOX_METADATA.image);
+  html = replaceMeta(html, "property", "og:image:alt", "property", NEOX_METADATA.imageAlt);
+  html = replaceMeta(html, "name", "twitter:image:alt", "name", NEOX_METADATA.imageAlt);
 
   return html;
 }

@@ -81,7 +81,7 @@ describe("Treasury view", () => {
 
   it("loads treasury balances from the indexed read-api without RPC fan-out", async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      if (String(url).includes("/rest/v1/v_nep17_balances")) {
+      if (/\/rest\/(?:v1|mainnet)\/v_nep17_balances/.test(String(url))) {
         return new Response(JSON.stringify([
           { address: "NtestTreasuryAddress", contract_hash: "0xneo", balance_raw: "12" },
           { address: "NtestTreasuryAddress", contract_hash: "0xgas", balance_raw: "150000000" },
@@ -116,7 +116,7 @@ describe("Treasury view", () => {
     await flushPromises();
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/rest\/v1\/v_nep17_balances\?.*select=address%2Ccontract_hash%2Cbalance_raw/),
+      expect.stringMatching(/\/rest\/(?:v1|mainnet)\/v_nep17_balances\?.*select=address%2Ccontract_hash%2Cbalance_raw/),
       expect.objectContaining({
         headers: { Accept: "application/json" },
       }),
