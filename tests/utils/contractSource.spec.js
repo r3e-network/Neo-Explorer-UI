@@ -54,6 +54,8 @@ describe("contractSource", () => {
 
   it("detects common source languages from filenames", () => {
     expect(languageFromFilename("Contract.cs")).toBe("csharp");
+    expect(languageFromFilename("src/NameService/NameService.cs")).toBe("csharp");
+    expect(languageFromFilename("https://example.com/contracts/Contract.cs?raw=1")).toBe("csharp");
     expect(languageFromFilename("manifest.json")).toBe("json");
     expect(languageFromFilename("contract.py")).toBe("python");
   });

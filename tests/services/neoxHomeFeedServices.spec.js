@@ -16,6 +16,7 @@ vi.mock("@/services/neox/consensusService", () => ({
 
 import { clearAllCache } from "@/services/cache";
 import { blockService } from "@/services/neox/blockService";
+import { writeHomeFeed } from "@/services/neox/homeFeedCache";
 import { transactionService } from "@/services/neox/transactionService";
 
 const rawBlock = (height) => ({
@@ -62,6 +63,25 @@ describe("Neo X rolling home feed services", () => {
     expect(fetchBlockscoutMock.mock.calls.filter(([, path]) => path === "blocks")).toHaveLength(1);
   });
 
+  it("repairs a full cached feed when its latest block heights contain a gap", async () => {
+    writeHomeFeed(
+      "neox-mainnet",
+      "blocks",
+      [10, 9, 8, 7, 2, 1].map((height) => ({ hash: `0xblock${height}`, index: height })),
+      6,
+    );
+    fetchBlockscoutMock.mockImplementation(async (_net, path) => {
+      if (path === "main-page/blocks") return [11, 10, 9, 8].map(rawBlock);
+      if (path === "blocks") return { items: [11, 10, 9, 8, 7, 6].map(rawBlock), next_page_params: null };
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    const rows = await blockService.getLatest(6, { net: "neox-mainnet" });
+
+    expect(rows.map((row) => row.index)).toEqual([11, 10, 9, 8, 7, 6]);
+    expect(fetchBlockscoutMock.mock.calls.filter(([, path]) => path === "blocks")).toHaveLength(1);
+  });
+
   it("retains older transactions when a later poll only returns a small delta", async () => {
     fetchBlockscoutMock
       .mockResolvedValueOnce([10, 9, 8, 7, 6, 5].map(rawTx))
@@ -73,4 +93,3 @@ describe("Neo X rolling home feed services", () => {
     expect(refreshed.map((row) => row.blockIndex)).toEqual([11, 10, 9, 8, 7, 6]);
   });
 });
-

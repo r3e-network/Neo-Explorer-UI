@@ -203,7 +203,8 @@ function isLikelySourceFile(path) {
 }
 
 function extensionFromFilename(filename = "") {
-  const basename = filename.toLowerCase().split(/[/?#]/)[0];
+  const pathname = filename.toLowerCase().split(/[?#]/)[0];
+  const basename = pathname.split("/").filter(Boolean).at(-1) || pathname;
   const match = basename.match(/(\.[a-z0-9]+)$/);
   return match?.[1] || "";
 }
