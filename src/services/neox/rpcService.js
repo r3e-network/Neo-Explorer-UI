@@ -14,6 +14,16 @@ import { SourceUnavailableError } from "@/adapters/source";
 import { getNeoxNet, resolveNeoxNetName } from "@/utils/neoxEnv";
 
 const DEFAULT_TIMEOUT_MS = 8000;
+const PARAMETERLESS_EDGE_METHODS = new Set([
+  "eth_blockNumber",
+  "eth_gasPrice",
+  "eth_envelopeFee",
+  "txpool_status",
+]);
+const EDGE_CACHEABLE_GOVERNANCE_CALL = Object.freeze({
+  to: "0x1212000000000000000000000000000000000001",
+  data: "0x9f9d7f81",
+});
 
 const netOf = (opts) => (typeof opts === "string" ? opts : opts?.net) || getNeoxNet();
 
@@ -23,6 +33,36 @@ function hexToNumber(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   const n = Number(String(value || "").trim());
   return Number.isFinite(n) ? n : 0;
+}
+
+function hexQuantityToDecimalString(value) {
+  try {
+    return BigInt(value).toString();
+  } catch (_err) {
+    return null;
+  }
+}
+
+function buildEdgeGetUrl(baseUrl, method, params) {
+  const search = new URLSearchParams({ method });
+  if (PARAMETERLESS_EDGE_METHODS.has(method) && params.length === 0) {
+    return `${baseUrl}?${search}`;
+  }
+
+  if (
+    method === "eth_call" &&
+    params.length === 2 &&
+    params[0]?.to === EDGE_CACHEABLE_GOVERNANCE_CALL.to &&
+    params[0]?.data === EDGE_CACHEABLE_GOVERNANCE_CALL.data &&
+    /^0x(?:0|[1-9a-f][0-9a-f]{0,15})$/.test(String(params[1] || ""))
+  ) {
+    const call = params[0] || {};
+    search.set("to", String(call.to || ""));
+    search.set("data", String(call.data || ""));
+    search.set("blockTag", String(params[1]));
+    return `${baseUrl}?${search}`;
+  }
+  return null;
 }
 
 /**
@@ -39,7 +79,9 @@ function hexToNumber(value) {
  * @throws {Error} When the node returns a JSON-RPC `error` member.
  */
 export async function rpcCall(method, params = [], opts = {}) {
-  const url = `/neox-rpc/${resolveNeoxNetName(netOf(opts))}`;
+  const baseUrl = `/neox-rpc/${resolveNeoxNetName(netOf(opts))}`;
+  const edgeGetUrl = opts.edgeCache ? buildEdgeGetUrl(baseUrl, method, params) : null;
+  const url = edgeGetUrl || baseUrl;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const controller = new AbortController();
@@ -54,12 +96,14 @@ export async function rpcCall(method, params = [], opts = {}) {
   let json;
   try {
     const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      method: edgeGetUrl ? "GET" : "POST",
+      headers: edgeGetUrl
+        ? { Accept: "application/json" }
+        : { "Content-Type": "application/json", Accept: "application/json" },
       // Full JSON-RPC envelope: the prod proxy only reads method/params (and
       // re-stamps its own id), while the dev vite proxy is a raw passthrough
       // to the node — which requires a valid jsonrpc/id envelope.
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      ...(edgeGetUrl ? {} : { body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) }),
       signal: activeSignal,
     });
     if (!response.ok) {
@@ -87,7 +131,7 @@ export const rpcService = {
 
   /** Mempool depth: { pending: Number, queued: Number } (hex strings parsed). */
   async getTxpoolStatus(opts = {}) {
-    const result = await rpcCall("txpool_status", [], opts);
+    const result = await rpcCall("txpool_status", [], { ...opts, edgeCache: true });
     return {
       pending: hexToNumber(result?.pending),
       queued: hexToNumber(result?.queued),
@@ -96,12 +140,21 @@ export const rpcService = {
 
   /** eth_call against latest or an explicit block tag. */
   async ethCall(callObj, opts = {}) {
-    return rpcCall("eth_call", [callObj, opts.blockTag || "latest"], opts);
+    const blockTag = opts.blockTag || "latest";
+    return rpcCall("eth_call", [callObj, blockTag], {
+      ...opts,
+      edgeCache: /^0x(?:0|[1-9a-f][0-9a-f]{0,15})$/.test(blockTag),
+    });
   },
 
   /** The node's head block number (eth_blockNumber, hex parsed to Number). */
   async getRpcBlockNumber(opts = {}) {
-    return hexToNumber(await rpcCall("eth_blockNumber", [], opts));
+    return hexToNumber(await rpcCall("eth_blockNumber", [], { ...opts, edgeCache: true }));
+  },
+
+  /** Additional gas price charged for the protocol's Envelope service. */
+  async getEnvelopeFee(opts = {}) {
+    return hexQuantityToDecimalString(await rpcCall("eth_envelopeFee", [], { ...opts, edgeCache: true }));
   },
 };
 

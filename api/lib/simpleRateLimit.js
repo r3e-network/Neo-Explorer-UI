@@ -126,6 +126,10 @@ function enforceSimpleRateLimit({
   const result = consumeRateLimit(`${safePrefix}:${ip}:${safeKey}`, { windowMs, maxRequests, nowMs });
   setRateLimitHeaders(res, result);
   if (result.allowed) return true;
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("CDN-Cache-Control", "no-store");
+  res.setHeader("Cloudflare-CDN-Cache-Control", "no-store");
+  res.setHeader("Vercel-CDN-Cache-Control", "no-store");
   res.status(429).json({ error: `Rate limit exceeded. Retry in ${result.retryAfterSeconds}s.` });
   return false;
 }

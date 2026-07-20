@@ -11,6 +11,7 @@ import { contractService } from "./contractService";
 import { statsService } from "./statsService";
 import { searchService } from "./searchService";
 import { rpcService } from "./rpcService";
+import { antiMevService } from "./antiMevService";
 
 export const neoxServices = {
   blockService,
@@ -21,8 +22,19 @@ export const neoxServices = {
   statsService,
   searchService,
   rpcService,
+  antiMevService,
 };
 
-export { blockService, transactionService, accountService, tokenService, contractService, statsService, searchService, rpcService };
+export {
+  blockService,
+  transactionService,
+  accountService,
+  tokenService,
+  contractService,
+  statsService,
+  searchService,
+  rpcService,
+  antiMevService,
+};
 
 export default neoxServices;

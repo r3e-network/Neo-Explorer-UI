@@ -155,6 +155,7 @@
             <router-link to="/x" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
             <router-link to="/x/blocks" class="mobile-link" @click="closeMobile">{{ $t("nav.blocks") }}</router-link>
             <router-link to="/x/transactions" class="mobile-link" @click="closeMobile">{{ $t("nav.transactions") }}</router-link>
+            <router-link to="/x/anti-mev" class="mobile-link" @click="closeMobile">Anti-MEV Center</router-link>
             <router-link to="/x/tokens" class="mobile-link" @click="closeMobile">{{ $t("nav.tokens") }}</router-link>
             <router-link to="/x/contracts" class="mobile-link" @click="closeMobile">{{ $t("nav.contracts") }}</router-link>
             <router-link to="/x/accounts" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>

@@ -34,10 +34,10 @@ function createResponse() {
   };
 }
 
-function createRequest({ net = "mainnet", body, method = "POST" } = {}) {
+function createRequest({ net = "mainnet", body, method = "POST", query = {} } = {}) {
   return {
     method,
-    query: { net },
+    query: { net, ...query },
     body,
     headers: {},
     socket: { remoteAddress: "127.0.0.1" },
@@ -90,6 +90,89 @@ describe("neox-rpc proxy", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual(upstreamPayload);
+  });
+
+  it("allows the read-only Neo X Envelope fee policy method", async () => {
+    globalThis.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x0" }), { status: 200 })
+    );
+
+    const handler = loadHandler();
+    const res = createResponse();
+    await handler(createRequest({ method: "GET", query: { method: "eth_envelopeFee" } }), res);
+
+    expect(res.statusCode).toBe(200);
+    const [, init] = globalThis.fetch.mock.calls[0];
+    expect(JSON.parse(init.body).method).toBe("eth_envelopeFee");
+    expect(res.headers["cache-control"]).toContain("max-age=60");
+    expect(res.headers["cloudflare-cdn-cache-control"]).toContain("max-age=300");
+    expect(res.headers["cloudflare-cdn-cache-control"]).not.toContain("s-maxage");
+  });
+
+  it("caches a bounded historical eth_call GET but rejects latest-state calls", async () => {
+    globalThis.fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x1234" }), { status: 200 })
+    );
+
+    const handler = loadHandler();
+    const res = createResponse();
+    await handler(createRequest({
+      method: "GET",
+      query: {
+        method: "eth_call",
+        to: "0x1212000000000000000000000000000000000001",
+        data: "0x9f9d7f81",
+        blockTag: "0x6d1b05",
+      },
+    }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cloudflare-cdn-cache-control"]).toContain("max-age=86400");
+
+    const rejected = createResponse();
+    await handler(createRequest({
+      method: "GET",
+      query: {
+        method: "eth_call",
+        to: "0x1212000000000000000000000000000000000001",
+        data: "0x9f9d7f81",
+        blockTag: "latest",
+      },
+    }), rejected);
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("rejects cache-key pollution and non-allowlisted historical calls", async () => {
+    const handler = loadHandler();
+
+    const extraQuery = createResponse();
+    await handler(createRequest({
+      method: "GET",
+      query: { method: "eth_envelopeFee", ignored: "unique-cache-buster" },
+    }), extraQuery);
+    expect(extraQuery.statusCode).toBe(400);
+    expect(extraQuery.headers["cache-control"]).toBe("no-store");
+
+    const repeatedMethod = createResponse();
+    await handler(createRequest({
+      method: "GET",
+      query: { method: ["eth_envelopeFee", "eth_blockNumber"] },
+    }), repeatedMethod);
+    expect(repeatedMethod.statusCode).toBe(400);
+
+    const arbitraryCall = createResponse();
+    await handler(createRequest({
+      method: "GET",
+      query: {
+        method: "eth_call",
+        to: "0x1212000000000000000000000000000000000002",
+        data: "0x9f9d7f81",
+        blockTag: "0x6d1b05",
+      },
+    }), arbitraryCall);
+    expect(arbitraryCall.statusCode).toBe(400);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("rejects non-allowlisted methods before touching the upstream", async () => {
@@ -156,10 +239,10 @@ describe("neox-rpc proxy", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("only allows POST", async () => {
+  it("only allows GET and POST", async () => {
     const handler = loadHandler();
     const res = createResponse();
-    await handler(createRequest({ method: "GET" }), res);
+    await handler(createRequest({ method: "DELETE" }), res);
 
     expect(res.statusCode).toBe(405);
     expect(globalThis.fetch).not.toHaveBeenCalled();

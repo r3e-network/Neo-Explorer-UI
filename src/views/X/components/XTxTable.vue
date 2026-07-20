@@ -31,6 +31,7 @@
                 :title="statusTitle(tx)"
               >Tx</span>
               <XHashLink type="tx" :hash="tx.hash" />
+              <XAntiMevBadge :anti-mev="tx.antiMev" />
               <span
                 v-if="isFailed(tx)"
                 class="bg-status-error-bg text-status-error rounded px-1.5 py-0.5 text-[10px] font-semibold"
@@ -38,7 +39,8 @@
             </div>
           </td>
           <td v-if="!dense" class="table-cell hidden md:table-cell">
-            <span v-if="tx.method" class="badge-soft max-w-[140px] truncate" :title="tx.method">{{ tx.method }}</span>
+            <XAntiMevBadge v-if="tx.antiMev" :anti-mev="tx.antiMev" />
+            <span v-else-if="tx.method" class="badge-soft max-w-[140px] truncate" :title="tx.method">{{ tx.method }}</span>
             <span v-else class="text-mid">—</span>
           </td>
           <td v-if="!dense" class="table-cell hidden md:table-cell">
@@ -99,6 +101,7 @@
 import { useI18n } from "vue-i18n";
 import XHashLink from "@/components/common/XHashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
+import XAntiMevBadge from "./XAntiMevBadge.vue";
 import { formatGas, formatGwei, formatInt, timeAgo } from "@/utils/neoxFormat";
 
 defineProps({

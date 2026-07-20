@@ -97,4 +97,23 @@ describe("Neo X home list rows", () => {
     expect(wrapper.text()).toContain("Selector 0x3161b7f6");
     expect(wrapper.text()).not.toContain("Method 0x3161b7f6");
   });
+
+  it("surfaces Anti-MEV Envelope semantics instead of the reserved selector", async () => {
+    const XTxListItem = (await import("@/views/X/components/XTxListItem.vue")).default;
+    const wrapper = mount(XTxListItem, {
+      props: {
+        tx: {
+          hash: "0x1234",
+          method: "0xffffffff",
+          timestampMs: Date.now(),
+          status: "ok",
+          antiMev: { isStructurallyValid: true, dkgRound: 17 },
+        },
+      },
+      global: { stubs: { XHashLink: hashLinkStub } },
+    });
+
+    expect(wrapper.text()).toContain("Anti-MEV Envelope");
+    expect(wrapper.text()).not.toContain("Selector 0xffffffff");
+  });
 });

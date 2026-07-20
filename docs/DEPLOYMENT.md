@@ -152,6 +152,35 @@ NeoChat v1 is:
 - backed by Supabase history and `read_at` markers
 - authenticated by a one-time wallet signature challenge, not by per-message signatures
 
+## Cloudflare cache rule
+
+Neo X read endpoints emit separate browser, Vercel, generic-CDN, and Cloudflare cache headers. Cloudflare still needs one cache-eligibility rule because extensionless JSON endpoints are otherwise commonly classified as dynamic.
+
+Create a Cache Rule with **Cache eligibility: Eligible for cache** and this expression:
+
+```text
+(http.request.method eq "GET" and (
+  starts_with(http.request.uri.path, "/neox/") or
+  starts_with(http.request.uri.path, "/neox-stats/") or
+  starts_with(http.request.uri.path, "/neox-rpc/")
+))
+```
+
+Keep these rule settings:
+
+- Edge TTL: respect the origin `Cloudflare-CDN-Cache-Control` header.
+- Browser TTL: respect the origin `Cache-Control` header.
+- Cache key: include the complete query string. RPC method and historical block tag are part of the key.
+- Serve stale while revalidating: enabled.
+- Do not add POST to cache eligibility. Latest-state `eth_call`, mutations, authenticated APIs, errors, and rate-limit responses intentionally use `no-store`.
+
+Validate with two identical GETs. The second response should normally be `CF-Cache-Status: HIT` (or `UPDATING` during asynchronous refresh):
+
+```bash
+curl -sS -D - -o /dev/null 'https://your-domain.example/neox-rpc/mainnet?method=eth_envelopeFee'
+curl -sS -D - -o /dev/null 'https://your-domain.example/neox-rpc/mainnet?method=eth_envelopeFee'
+```
+
 ## Health Checks
 
 Verify deployment quickly:

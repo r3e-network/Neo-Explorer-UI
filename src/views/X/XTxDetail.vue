@@ -28,6 +28,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <h1 class="page-title neon-glow-text">{{ tf("neoX.transaction", "Transaction") }}</h1>
               <StatusBadge :status="txStatus" />
+              <XAntiMevBadge :anti-mev="tx.antiMev" />
             </div>
             <p class="page-subtitle mt-1 flex flex-wrap items-center gap-2">
               <span class="font-hash text-xs text-low break-all">{{ tx.hash }}</span>
@@ -65,6 +66,61 @@
 
       <!-- Tabbed content -->
       <template v-else-if="tx">
+        <section
+          v-if="tx.antiMev"
+          class="mb-6 overflow-hidden rounded-lg border border-cyan-400/40 bg-cyan-500/5 animate-page-enter"
+          aria-labelledby="anti-mev-envelope-title"
+        >
+          <div class="flex flex-col gap-3 border-b border-cyan-400/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 id="anti-mev-envelope-title" class="text-sm font-semibold text-high">Neo X Anti-MEV Envelope</h2>
+                <span
+                  class="rounded px-2 py-0.5 text-[10px] font-semibold"
+                  :class="tx.antiMev.isStructurallyValid
+                    ? 'bg-status-success-bg text-status-success'
+                    : 'bg-status-warning-bg text-status-warning'"
+                >
+                  {{ tx.antiMev.isStructurallyValid ? "Valid public layout" : "Invalid public layout" }}
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-mid">Encrypted outer transaction recorded through the Governance Reward contract.</p>
+            </div>
+            <RouterLink to="/x/anti-mev" class="btn-outline flex-shrink-0 text-xs">Open Anti-MEV Center</RouterLink>
+          </div>
+          <dl class="grid gap-px bg-line-soft sm:grid-cols-2 xl:grid-cols-4">
+            <div class="bg-surface px-4 py-3">
+              <dt class="text-[10px] font-semibold uppercase text-low">DKG Round</dt>
+              <dd class="mt-1 font-hash text-sm font-semibold text-high">{{ tx.antiMev.dkgRound ?? "—" }}</dd>
+            </div>
+            <div class="bg-surface px-4 py-3">
+              <dt class="text-[10px] font-semibold uppercase text-low">Reserved Gas</dt>
+              <dd class="mt-1 font-hash text-sm font-semibold text-high">{{ formatInt(tx.antiMev.encryptedGas) }}</dd>
+            </div>
+            <div class="bg-surface px-4 py-3">
+              <dt class="text-[10px] font-semibold uppercase text-low">Encrypted Key</dt>
+              <dd class="mt-1 font-hash text-sm font-semibold text-high">{{ formatInt(tx.antiMev.encryptedKeyBytes) }} bytes</dd>
+            </div>
+            <div class="bg-surface px-4 py-3">
+              <dt class="text-[10px] font-semibold uppercase text-low">Encrypted Message</dt>
+              <dd class="mt-1 font-hash text-sm font-semibold text-high">{{ formatInt(tx.antiMev.encryptedMessageBytes) }} bytes</dd>
+            </div>
+          </dl>
+          <div class="px-4 py-3">
+            <p class="text-[10px] font-semibold uppercase text-low">Committed Inner Transaction Hash</p>
+            <div class="mt-1 flex min-w-0 items-start gap-2">
+              <span class="min-w-0 break-all font-hash text-xs text-high">{{ tx.antiMev.innerTransactionHash || "—" }}</span>
+              <CopyButton v-if="tx.antiMev.innerTransactionHash" :text="tx.antiMev.innerTransactionHash" size="xs" />
+            </div>
+            <p v-if="tx.antiMev.canonicalRecord" class="mt-3 text-xs leading-relaxed text-mid">
+              The outer Envelope remains in the canonical block. Public explorer fields alone do not prove that its inner transaction was successfully decrypted.
+            </p>
+            <ul v-if="tx.antiMev.issues.length" class="mt-3 space-y-1 text-xs text-status-warning">
+              <li v-for="issue in tx.antiMev.issues" :key="issue">{{ issue }}</li>
+            </ul>
+          </div>
+        </section>
+
         <!-- One-line action summary banner -->
         <div
           v-if="actionSummary"
@@ -367,6 +423,7 @@ import XTxLogsTab from "./components/XTxLogsTab.vue";
 import XTxInternalTab from "./components/XTxInternalTab.vue";
 import XTxStateTab from "./components/XTxStateTab.vue";
 import XTxRawTab from "./components/XTxRawTab.vue";
+import XAntiMevBadge from "./components/XAntiMevBadge.vue";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -431,7 +488,7 @@ const typeBadges = computed(() => {
   return badges;
 });
 
-const actionSummary = computed(() => (tx.value ? buildTxActionSummary(tx.value) : null));
+const actionSummary = computed(() => (tx.value && !tx.value.antiMev ? buildTxActionSummary(tx.value) : null));
 
 const tabs = computed(() => [
   { key: "overview", label: tf("neoX.overview", "Overview") },

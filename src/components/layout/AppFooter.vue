@@ -149,6 +149,7 @@ const resourceLinks = computed(() =>
   isNeoxRoute.value
     ? [
         { to: "/x", label: t("nav.home") },
+        { to: "/x/anti-mev", label: "Anti-MEV Center" },
         { to: "/x/charts", label: t("nav.chartsStats") },
         { to: "/api-docs", label: t("nav.apiDocs") },
       ]

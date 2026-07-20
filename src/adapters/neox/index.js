@@ -10,6 +10,8 @@
  * @module adapters/neox
  */
 
+import { analyzeNeoxAntiMevTransaction } from "@/utils/neoxAntiMev";
+
 function firstDefined(...values) {
   for (const value of values) {
     if (value !== undefined && value !== null) return value;
@@ -146,7 +148,7 @@ export function toXBlock(raw) {
  */
 export function toXTransaction(raw) {
   if (!raw || typeof raw !== "object") return null;
-  return {
+  const transaction = {
     hash: raw.hash || "",
     blockIndex: toInt(firstDefined(raw.block, raw.block_number, raw.blockNumber), undefined),
     timestampMs: toMs(raw.timestamp),
@@ -182,6 +184,8 @@ export function toXTransaction(raw) {
     createdContract: toXAddressInfo(raw.created_contract),
     raw,
   };
+  transaction.antiMev = analyzeNeoxAntiMevTransaction(transaction);
+  return transaction;
 }
 
 /**

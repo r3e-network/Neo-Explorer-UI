@@ -268,6 +268,33 @@
       </div>
     </section>
 
+    <section class="page-shell animate-page-enter animate-page-enter-delay-2">
+      <div class="page-container py-3">
+        <div class="flex flex-col gap-4 border-y border-line-soft py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 items-start gap-3">
+            <img src="/img/brand/neox-mark.svg" alt="Neo X" class="mt-0.5 h-8 w-8 flex-shrink-0 object-contain" />
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-sm font-semibold text-high">Protocol-native Anti-MEV</h2>
+                <span
+                  class="rounded px-2 py-0.5 text-[10px] font-semibold"
+                  :class="antiMevProtection.active === true
+                    ? 'bg-status-success-bg text-status-success'
+                    : 'bg-status-warning-bg text-status-warning'"
+                >
+                  {{ antiMevProtection.active === true ? "Active" : "Checking head" }}
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-mid">
+                Enveloped Transactions · PreBlock / Shadow Block ordering · PreCommit threshold decryption · Single-block finality
+              </p>
+            </div>
+          </div>
+          <RouterLink to="/x/anti-mev" class="btn-outline flex-shrink-0 text-xs">Open Anti-MEV Center</RouterLink>
+        </div>
+      </div>
+    </section>
+
     <!-- Latest Blocks + Latest Transactions -->
     <section class="page-shell animate-page-enter animate-page-enter-delay-2">
       <div class="page-container py-1">
@@ -341,6 +368,7 @@ import { getNeoxNet, getNeoxLabel, getNeoxRefreshIntervalMs } from "@/utils/neox
 import { statsService, blockService, transactionService, searchService, rpcService } from "@/services/neox";
 import { formatInt } from "@/utils/neoxFormat";
 import { NEOX_HOME_FEED_ROWS, readHomeFeed, reconcileHomeFeed } from "@/services/neox/homeFeedCache";
+import { getNeoxBlockProtection } from "@/utils/neoxAntiMev";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const LATEST_ROWS = NEOX_HOME_FEED_ROWS;
@@ -372,6 +400,7 @@ const latestBlockHeight = computed(() => {
     .filter(Number.isFinite);
   return heights.length ? Math.max(...heights) : null;
 });
+const antiMevProtection = computed(() => getNeoxBlockProtection(latestBlockHeight.value, activeNet.value));
 
 const gasPriceLabel = computed(() => {
   const prices = stats.value?.gasPrices;

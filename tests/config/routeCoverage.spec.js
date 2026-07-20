@@ -64,6 +64,7 @@ const ROUTE_AUDIT_EVIDENCE = Object.freeze({
   xBlocks: ["tests/adapters/neox.spec.js", "src/views/X/XBlocks.vue source audit"],
   xBlockDetail: ["tests/adapters/neox.spec.js", "src/views/X/XBlockDetail.vue source audit"],
   xTransactions: ["tests/adapters/neox.spec.js", "src/views/X/XTransactions.vue source audit"],
+  xAntiMev: ["tests/utils/neoxAntiMev.spec.js", "src/views/X/XAntiMev.vue source audit"],
   xTxDetail: ["tests/adapters/neox.spec.js", "src/views/X/XTxDetail.vue source audit"],
   xAddress: ["tests/adapters/neox.spec.js", "src/views/X/XAddressDetail.vue source audit"],
   xTokens: ["tests/adapters/neox.spec.js", "src/views/X/XTokens.vue source audit"],

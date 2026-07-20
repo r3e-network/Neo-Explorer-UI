@@ -54,8 +54,21 @@ describe("vite config warning and chunk helpers", () => {
 
   it("keeps the dev price endpoint as a readable unavailable payload when CoinGecko is down", () => {
     const viteConfig = fs.readFileSync(new URL("../../vite.config.js", import.meta.url), "utf8");
+    const pricePlugin = viteConfig.slice(
+      viteConfig.indexOf("function createDevPriceProxyPlugin"),
+      viteConfig.indexOf("export function shouldIgnoreRollupWarning"),
+    );
     expect(viteConfig).toContain("pricingUnavailable: true");
-    expect(viteConfig).toContain('res.setHeader("Cache-Control", "no-store")');
-    expect(viteConfig).not.toContain('res.statusCode = 502');
+    expect(pricePlugin).toContain('res.setHeader("Cache-Control", "no-store")');
+    expect(pricePlugin).not.toContain('res.statusCode = 502');
+  });
+
+  it("translates cacheable Neo X RPC GETs to bounded upstream JSON-RPC calls in dev", () => {
+    const viteConfig = fs.readFileSync(new URL("../../vite.config.js", import.meta.url), "utf8");
+    expect(viteConfig).toContain('name: "dev-neox-rpc-cache"');
+    expect(viteConfig).toContain('res.setHeader("X-Dev-Cache", "HIT")');
+    expect(viteConfig).toContain('!/^0x(?:0|[1-9a-f][0-9a-f]{0,15})$/.test(blockTag)');
+    expect(viteConfig).toContain('data !== "0x9f9d7f81"');
+    expect(viteConfig).toContain("devNeoxRpcInflight.get(cacheKey)");
   });
 });

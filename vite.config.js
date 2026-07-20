@@ -34,6 +34,116 @@ let devPriceCache = {
   fetchedAt: 0,
 };
 
+const DEV_NEOX_RPC_TTL_SECONDS = Object.freeze({
+  eth_blockNumber: 2,
+  txpool_status: 2,
+  eth_gasPrice: 8,
+  eth_envelopeFee: 300,
+  eth_call: 3600,
+});
+const devNeoxRpcCache = new Map();
+const devNeoxRpcInflight = new Map();
+
+function parseDevCacheableRpcRequest(url) {
+  const method = String(url.searchParams.get("method") || "");
+  const queryKeys = [...url.searchParams.keys()];
+  const hasDuplicateKeys = new Set(queryKeys).size !== queryKeys.length;
+  if (["eth_blockNumber", "txpool_status", "eth_gasPrice", "eth_envelopeFee"].includes(method)) {
+    if (hasDuplicateKeys || queryKeys.some((key) => key !== "method")) return null;
+    return { method, params: [] };
+  }
+  if (method !== "eth_call") return null;
+  if (
+    hasDuplicateKeys ||
+    queryKeys.some((key) => !["method", "to", "data", "blockTag"].includes(key))
+  ) return null;
+
+  const to = String(url.searchParams.get("to") || "");
+  const data = String(url.searchParams.get("data") || "");
+  const blockTag = String(url.searchParams.get("blockTag") || "");
+  if (
+    to !== "0x1212000000000000000000000000000000000001" ||
+    data !== "0x9f9d7f81" ||
+    data.length > 8_192 ||
+    !/^0x(?:0|[1-9a-f][0-9a-f]{0,15})$/.test(blockTag)
+  ) {
+    return null;
+  }
+  return { method, params: [{ to, data }, blockTag] };
+}
+
+function createDevNeoxRpcGetPlugin(targets) {
+  return {
+    name: "dev-neox-rpc-cache",
+    configureServer(server) {
+      server.middlewares.use("/neox-rpc", async (req, res, next) => {
+        if (req.method !== "GET") {
+          next();
+          return;
+        }
+
+        const url = new URL(req.url, "http://localhost");
+        const net = url.pathname.split("/").filter(Boolean).at(-1);
+        const target = targets[net];
+        const rpcRequest = parseDevCacheableRpcRequest(url);
+        if (!target || !rpcRequest) {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Cache-Control", "no-store");
+          res.end(JSON.stringify({ error: "Unsupported cacheable Neo X RPC request" }));
+          return;
+        }
+
+        const cacheKey = `${net}:${url.searchParams.toString()}`;
+        const now = Date.now();
+        const cached = devNeoxRpcCache.get(cacheKey);
+        if (cached && cached.expiresAt > now) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Cache-Control", `public, max-age=${DEV_NEOX_RPC_TTL_SECONDS[rpcRequest.method]}`);
+          res.setHeader("X-Dev-Cache", "HIT");
+          res.end(JSON.stringify(cached.payload));
+          return;
+        }
+
+        let request = devNeoxRpcInflight.get(cacheKey);
+        if (!request) {
+          request = fetch(target, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", id: 1, ...rpcRequest }),
+            signal: AbortSignal.timeout(8_000),
+          })
+            .then(async (upstream) => {
+              if (!upstream.ok) throw new Error(`Neo X RPC responded ${upstream.status}`);
+              return upstream.json();
+            })
+            .finally(() => devNeoxRpcInflight.delete(cacheKey));
+          devNeoxRpcInflight.set(cacheKey, request);
+        }
+
+        try {
+          const payload = await request;
+          const ttlSeconds = DEV_NEOX_RPC_TTL_SECONDS[rpcRequest.method];
+          if (!payload?.error) {
+            devNeoxRpcCache.set(cacheKey, { payload, expiresAt: Date.now() + ttlSeconds * 1000 });
+          }
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Cache-Control", payload?.error ? "no-store" : `public, max-age=${ttlSeconds}`);
+          res.setHeader("X-Dev-Cache", "MISS");
+          res.end(JSON.stringify(payload));
+        } catch (error) {
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Cache-Control", "no-store");
+          res.end(JSON.stringify({ error: error.message || "Neo X RPC unavailable" }));
+        }
+      });
+    },
+  };
+}
+
 function createDevMultisigApiPlugin() {
   return {
     name: "dev-multisig-api",
@@ -368,6 +478,10 @@ export default defineConfig(({ mode }) => {
       vue(),
       createDevMultisigApiPlugin(),
       createDevPriceProxyPlugin(coingeckoProxyTarget),
+      createDevNeoxRpcGetPlugin({
+        mainnet: neoxMainnetRpcTarget,
+        testnet: neoxTestnetRpcTarget,
+      }),
       compression({
         algorithm: "gzip",
         ext: ".gz",

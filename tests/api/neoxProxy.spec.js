@@ -60,7 +60,34 @@ describe("Neo X REST proxy", () => {
       "https://xexplorer.neo.org/api/v2/blocks/42?type=block&q=neo",
       expect.objectContaining({ headers: { Accept: "application/json" } })
     );
-    expect(res.headers["cache-control"]).toContain("s-maxage=10");
+    expect(res.headers["cache-control"]).toContain("max-age=30");
+    expect(res.headers["cloudflare-cdn-cache-control"]).toContain("max-age=120");
+    expect(res.headers["cloudflare-cdn-cache-control"]).toContain("stale-while-revalidate=600");
+  });
+
+  it("accepts the bounded cursor fields emitted by token pagination endpoints", async () => {
+    globalThis.fetch.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+
+    const handler = loadHandler("../../api/neox.js");
+    const res = createResponse();
+    await handler(
+      createRequest({
+        query: {
+          net: "mainnet",
+          path: "tokens/0xtoken/holders",
+          address_hash: "0xholder",
+          value: "1000000000000000000",
+          unique_token: "42",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://xexplorer.neo.org/api/v2/tokens/0xtoken/holders?address_hash=0xholder&value=1000000000000000000&unique_token=42",
+      expect.anything()
+    );
   });
 
   it("preserves an upstream not-found response as a 404 empty-state signal", async () => {
@@ -78,6 +105,7 @@ describe("Neo X REST proxy", () => {
     [{ net: "devnet", path: "blocks" }, "Unsupported Neo X network"],
     [{ net: "mainnet", path: "blocks/../secrets" }, "Invalid Neo X path"],
     [{ net: "mainnet", path: "admin" }, "Unsupported Neo X resource"],
+    [{ net: "mainnet", path: "blocks", cache_buster: "unbounded" }, "Unsupported Neo X query"],
   ])("rejects unsafe or unsupported routing input", async (query, message) => {
     const handler = loadHandler("../../api/neox.js");
     const res = createResponse();
@@ -114,7 +142,6 @@ describe("Neo X stats proxy", () => {
           path: "lines/newTxns",
           resolution: "DAY",
           from: "2026-07-01",
-          ignored: "value",
         },
       }),
       res
@@ -125,7 +152,8 @@ describe("Neo X stats proxy", () => {
       "https://xt4scan.ngd.network:8080/api/v1/lines/newTxns?resolution=DAY&from=2026-07-01",
       expect.anything()
     );
-    expect(res.headers["cache-control"]).toContain("s-maxage=600");
+    expect(res.headers["cache-control"]).toContain("max-age=300");
+    expect(res.headers["cloudflare-cdn-cache-control"]).toContain("max-age=3600");
   });
 
   it("rejects unknown chart paths before contacting the upstream", async () => {
@@ -135,6 +163,19 @@ describe("Neo X stats proxy", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: "Unsupported Neo X stats path" });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown stats query keys before they can pollute the CDN cache", async () => {
+    const handler = loadHandler("../../api/neox-stats.js");
+    const res = createResponse();
+    await handler(
+      createRequest({ query: { net: "mainnet", path: "lines/newTxns", resolution: "DAY", nonce: "unique" } }),
+      res
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["cache-control"]).toBe("no-store");
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

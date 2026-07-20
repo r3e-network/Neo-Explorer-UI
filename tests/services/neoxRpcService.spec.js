@@ -77,7 +77,10 @@ describe("neox rpcService", () => {
       );
 
       expect(await rpcService.getTxpoolStatus({ net: NET })).toEqual({ pending: 26, queued: 0 });
-      expect(lastRequestBody()).toEqual({ jsonrpc: "2.0", id: 1, method: "txpool_status", params: [] });
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/neox-rpc/mainnet?method=txpool_status",
+        expect.objectContaining({ method: "GET" })
+      );
     });
 
     it("normalizes a malformed result to zeros", async () => {
@@ -107,6 +110,18 @@ describe("neox rpcService", () => {
       const callObj = { to: "0x1212000000000000000000000000000000000001", data: "0x9f9d7f81" };
       await rpcService.ethCall(callObj, { net: NET, blockTag: "0x6d1b05" });
 
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/neox-rpc/mainnet?method=eth_call&to=0x1212000000000000000000000000000000000001&data=0x9f9d7f81&blockTag=0x6d1b05",
+        expect.objectContaining({ method: "GET" })
+      );
+    });
+
+    it("keeps arbitrary historical calls on POST to prevent cache-key abuse", async () => {
+      globalThis.fetch.mockResolvedValueOnce(jsonResponse({ jsonrpc: "2.0", id: 1, result: "0xbeef" }));
+
+      const callObj = { to: "0x1212000000000000000000000000000000000002", data: "0x12345678" };
+      await rpcService.ethCall(callObj, { net: NET, blockTag: "0x6d1b05" });
+
       expect(lastRequestBody().params).toEqual([callObj, "0x6d1b05"]);
     });
   });
@@ -116,10 +131,22 @@ describe("neox rpcService", () => {
       globalThis.fetch.mockResolvedValueOnce(jsonResponse({ jsonrpc: "2.0", id: 1, result: "0x6d1b05" }));
 
       expect(await rpcService.getRpcBlockNumber({ net: NET })).toBe(0x6d1b05);
-      expect(lastRequestBody()).toEqual({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_blockNumber", params: [] });
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/neox-rpc/mainnet?method=eth_blockNumber",
+        expect.objectContaining({ method: "GET" })
+      );
+    });
+  });
+
+  describe("getEnvelopeFee", () => {
+    it("preserves the RPC hex quantity as an exact decimal string", async () => {
+      globalThis.fetch.mockResolvedValueOnce(jsonResponse({ jsonrpc: "2.0", id: 1, result: "0x2540be400" }));
+
+      expect(await rpcService.getEnvelopeFee({ net: NET })).toBe("10000000000");
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/neox-rpc/mainnet?method=eth_envelopeFee",
+        expect.objectContaining({ method: "GET" })
+      );
     });
   });
 });

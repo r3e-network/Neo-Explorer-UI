@@ -33,6 +33,10 @@
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <h1 class="page-title neon-glow-text">{{ tf("neoX.block", "Block") }} #{{ formatInt(block.index) }}</h1>
+                <span
+                  v-if="antiMevProtection.active"
+                  class="inline-flex items-center rounded border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-700 dark:text-cyan-300"
+                >Anti-MEV Era</span>
               </div>
               <p class="page-subtitle mt-1 flex flex-wrap items-center gap-3">
                 <span>{{ timeAgo(block.timestampMs) }}</span>
@@ -98,6 +102,28 @@
       <EmptyState v-else-if="notFound" :message="tf('neoX.notFound', 'Block not found.')" icon="block" />
 
       <div v-else-if="block" class="space-y-6">
+        <section
+          v-if="antiMevProtection.active"
+          class="flex flex-col gap-4 border-y border-line-soft py-4 lg:flex-row lg:items-center lg:justify-between animate-page-enter animate-page-enter-delay-1"
+          aria-label="Neo X Anti-MEV consensus status"
+        >
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-sm font-semibold text-high">PreBlock / Shadow Block ordering</h2>
+              <span class="rounded bg-status-success-bg px-2 py-0.5 text-[10px] font-semibold text-status-success">Active</span>
+            </div>
+            <p class="mt-1 text-xs text-mid">
+              Enhanced dBFT fixes transaction order before PreCommit threshold decryption and final block commitment.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+            <span><strong class="text-high">PreCommit</strong><span class="ml-1 text-mid">2f+1 shares</span></span>
+            <span><strong class="text-high">Finality</strong><span class="ml-1 text-mid">Single block</span></span>
+            <span><strong class="text-high">Envelope records</strong><span class="ml-1 text-mid">{{ envelopeRecordCount }}</span></span>
+            <RouterLink to="/x/anti-mev" class="etherscan-link font-semibold">Anti-MEV Center</RouterLink>
+          </div>
+        </section>
+
         <!-- Metrics -->
         <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4 animate-page-enter animate-page-enter-delay-1">
           <DashboardStatCard
@@ -239,6 +265,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet } from "@/utils/neoxEnv";
 import { blockService } from "@/services/neox";
 import { formatGas, formatGwei, formatInt, formatTimestamp, timeAgo } from "@/utils/neoxFormat";
+import { getNeoxBlockProtection } from "@/utils/neoxAntiMev";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -262,7 +289,11 @@ const txListFailed = ref(false);
 const loading = ref(false);
 const error = ref("");
 const notFound = ref(false);
+const activeNet = ref(getNeoxNet());
 let reqId = 0;
+
+const antiMevProtection = computed(() => getNeoxBlockProtection(block.value?.index, activeNet.value));
+const envelopeRecordCount = computed(() => txs.value.filter((transaction) => transaction?.antiMev).length);
 
 const baseFeeGwei = computed(() => {
   const wei = Number(block.value?.baseFeePerGas);
@@ -295,6 +326,7 @@ async function load() {
   notFound.value = false;
   try {
     const net = getNeoxNet();
+    activeNet.value = net;
     const found = await blockService.getByParam(param, { net });
     if (current !== reqId) return;
     block.value = found;

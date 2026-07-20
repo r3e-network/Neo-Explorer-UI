@@ -9,6 +9,7 @@
 const { withApiTelemetry } = require("./lib/telemetry");
 const { sendJson, methodNotAllowed } = require("./lib/http");
 const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
+const { NO_STORE_HEADERS, neoXRestProfile, publicCacheHeaders } = require("./lib/cachePolicy");
 
 module.exports.config = {
   runtime: "nodejs",
@@ -40,6 +41,44 @@ const RATE_LIMIT_MAX = Number(process.env.NEOX_RATE_LIMIT_PER_MINUTE || 120);
 
 const UNAVAILABLE_PAYLOAD = { error: "Neo X explorer upstream unavailable" };
 
+const ALLOWED_QUERY_KEYS = new Set([
+  "q",
+  "type",
+  "filter",
+  "sort",
+  "order",
+  "block_number",
+  "index",
+  "items_count",
+  "hash",
+  "transactions_count",
+  "fetched_coin_balance",
+  "name",
+  "fiat_value",
+  "contract_address_hash",
+  "market_cap",
+  "holders_count",
+  "holder_count",
+  "is_name_null",
+  "smart_contract_id",
+  "token_id",
+  "log_index",
+  "transaction_index",
+  "batch_log_index",
+  "id",
+  "address_hash",
+  "unique_token",
+  "value",
+]);
+
+function hasValidQuery(query) {
+  return Object.entries(query || {}).every(([key, value]) => {
+    if (key === "net" || key === "path") return true;
+    if (!ALLOWED_QUERY_KEYS.has(key) || Array.isArray(value)) return false;
+    return String(value ?? "").length <= 512;
+  });
+}
+
 function buildQueryString(query) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query || {})) {
@@ -68,23 +107,26 @@ function splitPath(value) {
 
 async function handler(req, res) {
   if (req.method !== "GET") {
-    return methodNotAllowed(res, { Allow: "GET" });
+    return methodNotAllowed(res, { Allow: "GET", ...NO_STORE_HEADERS });
   }
 
   const net = String(firstQueryValue(req.query?.net) || "").trim();
   const rest = splitPath(req.query?.path);
 
   if (!UPSTREAM_BASES[net]) {
-    return sendJson(res, 400, { error: "Unsupported Neo X network" });
+    return sendJson(res, 400, { error: "Unsupported Neo X network" }, NO_STORE_HEADERS);
   }
   if (rest.length === 0 || rest.length > MAX_PATH_SEGMENTS) {
-    return sendJson(res, 400, { error: "Unsupported Neo X path" });
+    return sendJson(res, 400, { error: "Unsupported Neo X path" }, NO_STORE_HEADERS);
   }
   if (!ALLOWED_TOP_SEGMENTS.has(rest[0])) {
-    return sendJson(res, 400, { error: "Unsupported Neo X resource" });
+    return sendJson(res, 400, { error: "Unsupported Neo X resource" }, NO_STORE_HEADERS);
   }
   if (rest.some((segment) => segment.includes("..") || segment.includes("/") || segment.includes("\\"))) {
-    return sendJson(res, 400, { error: "Invalid Neo X path" });
+    return sendJson(res, 400, { error: "Invalid Neo X path" }, NO_STORE_HEADERS);
+  }
+  if (!hasValidQuery(req.query)) {
+    return sendJson(res, 400, { error: "Unsupported Neo X query" }, NO_STORE_HEADERS);
   }
 
   if (
@@ -113,14 +155,12 @@ async function handler(req, res) {
     if (!upstream.ok) {
       // A missing resource must stay a 404 (empty state), not an outage banner.
       const status = upstream.status === 404 ? 404 : 502;
-      return sendJson(res, status, UNAVAILABLE_PAYLOAD, { "Cache-Control": "no-store" });
+      return sendJson(res, status, UNAVAILABLE_PAYLOAD, NO_STORE_HEADERS);
     }
     const payload = await upstream.json();
-    return sendJson(res, 200, payload, {
-      "Cache-Control": "public, max-age=5, s-maxage=10, stale-while-revalidate=30",
-    });
+    return sendJson(res, 200, payload, publicCacheHeaders(neoXRestProfile(rest)));
   } catch (_err) {
-    return sendJson(res, 502, UNAVAILABLE_PAYLOAD, { "Cache-Control": "no-store" });
+    return sendJson(res, 502, UNAVAILABLE_PAYLOAD, NO_STORE_HEADERS);
   } finally {
     clearTimeout(timer);
   }

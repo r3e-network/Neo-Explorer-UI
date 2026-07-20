@@ -11,8 +11,9 @@
         <div class="min-w-0">
           <div class="flex min-w-0 items-center gap-1.5">
             <XHashLink type="tx" :hash="tx.hash" />
+            <XAntiMevBadge :anti-mev="tx.antiMev" />
             <span
-              v-if="tx.method"
+              v-if="tx.method && !tx.antiMev"
               class="badge-soft hidden max-w-[150px] truncate text-[10px] sm:inline-block"
               :title="methodBadgeLabel"
             >
@@ -92,9 +93,11 @@
       </div>
       <div class="min-w-0">
         <dt class="text-[10px] uppercase text-low">
-          {{ isMethodSelector ? tf("neoX.selector", "Selector") : tf("neoX.method", "Method") }}
+          {{ tx.antiMev ? "Protocol" : (isMethodSelector ? tf("neoX.selector", "Selector") : tf("neoX.method", "Method")) }}
         </dt>
-        <dd class="mt-1 truncate text-sm font-medium text-high" :title="tx.method || ''">{{ tx.method || "--" }}</dd>
+        <dd class="mt-1 truncate text-sm font-medium text-high" :title="tx.method || ''">
+          {{ tx.antiMev ? "Anti-MEV Envelope" : (tx.method || "--") }}
+        </dd>
       </div>
       <div class="min-w-0 text-right">
         <dt class="text-[10px] uppercase text-low">{{ tf("neoX.block", "Block") }}</dt>
@@ -117,6 +120,7 @@ import { computed } from "vue";
 import { useNow } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import XHashLink from "@/components/common/XHashLink.vue";
+import XAntiMevBadge from "./XAntiMevBadge.vue";
 import { formatGas, timeAgo } from "@/utils/neoxFormat";
 
 // N3 TxListItem's row anatomy with EVM data: hash + method badge, live age,

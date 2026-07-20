@@ -102,6 +102,7 @@ const XTokenDetail = lazyLoad(() => import("../views/X/XTokenDetail.vue"));
 const XContracts = lazyLoad(() => import("../views/X/XContracts.vue"));
 const XAccounts = lazyLoad(() => import("../views/X/XAccounts.vue"));
 const XCharts = lazyLoad(() => import("../views/X/XCharts.vue"));
+const XAntiMev = lazyLoad(() => import("../views/X/XAntiMev.vue"));
 
 const routes = [
   {
@@ -507,6 +508,12 @@ const routes = [
         name: "xTransactions",
         meta: { titleKey: "pageTitles.xTransactions" },
         component: XTransactions,
+      },
+      {
+        path: "/x/anti-mev",
+        name: "xAntiMev",
+        meta: { title: "Neo X Anti-MEV Center" },
+        component: XAntiMev,
       },
       {
         path: "/x/tx/:txhash",

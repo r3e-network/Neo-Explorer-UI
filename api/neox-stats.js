@@ -9,6 +9,7 @@
 const { withApiTelemetry } = require("./lib/telemetry");
 const { sendJson, methodNotAllowed } = require("./lib/http");
 const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
+const { NO_STORE_HEADERS, publicCacheHeaders } = require("./lib/cachePolicy");
 
 module.exports.config = {
   runtime: "nodejs",
@@ -58,6 +59,14 @@ function buildQueryString(query) {
   return serialized ? `?${serialized}` : "";
 }
 
+function hasValidQuery(query) {
+  return Object.entries(query || {}).every(([key, value]) => {
+    if (key === "net" || key === "path") return true;
+    if (!FORWARDED_QUERY_KEYS.includes(key) || Array.isArray(value)) return false;
+    return String(value ?? "").length <= 128;
+  });
+}
+
 function firstQueryValue(value) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -72,17 +81,20 @@ function splitPath(value) {
 
 async function handler(req, res) {
   if (req.method !== "GET") {
-    return methodNotAllowed(res, { Allow: "GET" });
+    return methodNotAllowed(res, { Allow: "GET", ...NO_STORE_HEADERS });
   }
 
   const net = String(firstQueryValue(req.query?.net) || "").trim();
   const rest = splitPath(req.query?.path);
 
   if (!UPSTREAM_BASES[net]) {
-    return sendJson(res, 400, { error: "Unsupported Neo X network" });
+    return sendJson(res, 400, { error: "Unsupported Neo X network" }, NO_STORE_HEADERS);
   }
   if (!isAllowedStatsPath(rest)) {
-    return sendJson(res, 400, { error: "Unsupported Neo X stats path" });
+    return sendJson(res, 400, { error: "Unsupported Neo X stats path" }, NO_STORE_HEADERS);
+  }
+  if (!hasValidQuery(req.query)) {
+    return sendJson(res, 400, { error: "Unsupported Neo X stats query" }, NO_STORE_HEADERS);
   }
 
   if (
@@ -111,15 +123,13 @@ async function handler(req, res) {
     if (!upstream.ok) {
       // A missing chart must stay a 404 (empty state), not an outage banner.
       const status = upstream.status === 404 ? 404 : 502;
-      return sendJson(res, status, UNAVAILABLE_PAYLOAD, { "Cache-Control": "no-store" });
+      return sendJson(res, status, UNAVAILABLE_PAYLOAD, NO_STORE_HEADERS);
     }
     const payload = await upstream.json();
     // Chart data is daily-granularity, so a long shared cache is safe.
-    return sendJson(res, 200, payload, {
-      "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=3600",
-    });
+    return sendJson(res, 200, payload, publicCacheHeaders("chart"));
   } catch (_err) {
-    return sendJson(res, 502, UNAVAILABLE_PAYLOAD, { "Cache-Control": "no-store" });
+    return sendJson(res, 502, UNAVAILABLE_PAYLOAD, NO_STORE_HEADERS);
   } finally {
     clearTimeout(timer);
   }

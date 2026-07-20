@@ -118,6 +118,7 @@
         <router-link to="/x" class="dropdown-link">{{ $t("nav.home") }}</router-link>
         <router-link to="/x/blocks" class="dropdown-link">{{ $t("nav.blocks") }}</router-link>
         <router-link to="/x/transactions" class="dropdown-link">{{ $t("nav.transactions") }}</router-link>
+        <router-link to="/x/anti-mev" class="dropdown-link">Anti-MEV Center</router-link>
         <router-link to="/x/tokens" class="dropdown-link">{{ $t("nav.tokens") }}</router-link>
         <router-link to="/x/contracts" class="dropdown-link">{{ $t("nav.contracts") }}</router-link>
         <router-link to="/x/accounts" class="dropdown-link">{{ $t("nav.accounts") }}</router-link>
