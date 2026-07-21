@@ -65,6 +65,7 @@ const ja = {
       badInput: "入力に Neo X エンベロープのプレフィックスとレイアウトが含まれていません。",
     },
     ariaMenu: "Neo X メニュー",
+    addressQrAria: "アドレスの QR コード",
     showTimestampsAsAge: "タイムスタンプを経過時間で表示",
     showTimestampsAsUtc: "タイムスタンプを UTC で表示",
     toggleAgeUtc: "クリックで経過時間 / UTC を切替",

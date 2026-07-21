@@ -65,6 +65,7 @@ const ko = {
       badInput: "입력에 Neo X 봉투 접두사와 레이아웃이 없습니다.",
     },
     ariaMenu: "Neo X 메뉴",
+    addressQrAria: "주소 QR 코드",
     showTimestampsAsAge: "타임스탬프를 경과 시간으로 표시",
     showTimestampsAsUtc: "타임스탬프를 UTC로 표시",
     toggleAgeUtc: "클릭하여 경과 시간 / UTC 전환",

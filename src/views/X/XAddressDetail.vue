@@ -38,7 +38,7 @@
             <span class="glow-dot absolute -right-0.5 -bottom-0.5"></span>
           </div>
 
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1 sm:pr-24">
             <div class="flex flex-wrap items-center gap-2">
               <h1 class="page-title neon-glow-text">
                 {{ displayName || (isContract ? tf("neoX.contract", "Contract") : tf("neoX.address", "Address")) }}
@@ -72,42 +72,22 @@
             <div class="detail-metadata mt-1">
               <span class="detail-chip min-w-0 max-w-full break-all font-hash text-[11px] sm:text-xs">{{ addr }}</span>
               <CopyButton :text="addr" />
-              <button
-                class="btn-outline px-2 py-1 text-xs"
-                :aria-expanded="showQr"
-                :aria-label="tf('neoX.qrToggleAria', 'Toggle address QR code')"
-                :title="tf('neoX.qrShow', 'Show QR code')"
-                @click="showQr = !showQr"
-              >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
-                  />
-                </svg>
-                QR
-              </button>
-            </div>
-
-            <!-- QR code -->
-            <div
-              v-if="showQr"
-              class="surface-panel mt-3 inline-block rounded-xl border border-line-soft bg-white p-3 shadow-sm"
-            >
-              <div class="flex flex-col items-center gap-3">
-                <div class="rounded-lg bg-white p-2">
-                  <QrcodeVue :value="addr" :size="150" level="H" />
-                </div>
-                <!-- Panel is intentionally white in both themes (QR scan contrast),
-                     so the caption needs a fixed dark color, not a themed token. -->
-                <p class="max-w-[200px] break-all text-center font-hash text-[10px] text-slate-600">
-                  {{ addr }}
-                </p>
-              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Always-visible scan QR, absolutely positioned so it never affects
+             the hero's flow height. White box in both themes (scan contrast).
+             Hidden on phones: you cannot scan the screen you are holding.
+             !absolute: .detail-hero-enhanced > * forces position:relative on
+             children for particle stacking and ties with the plain utility. -->
+        <div
+          class="!absolute top-1/2 right-5 z-10 hidden -translate-y-1/2 rounded-lg border border-line-soft bg-white p-1.5 shadow-sm sm:block"
+          role="img"
+          :aria-label="tf('neoX.addressQrAria', 'Address QR code')"
+          :title="addr"
+        >
+          <QrcodeVue :value="addr" :size="64" level="M" />
         </div>
       </div>
 
@@ -304,7 +284,6 @@ const loading = ref(false);
 const error = ref(false);
 const notFound = ref(false);
 const activeTab = ref("transactions");
-const showQr = ref(false);
 let reqId = 0;
 
 const addr = computed(() => String(route.params.addr || ""));
@@ -385,7 +364,6 @@ watch(
     account.value = null;
     counters.value = null;
     activeTab.value = "transactions";
-    showQr.value = false;
     loadOverview();
   }
 );

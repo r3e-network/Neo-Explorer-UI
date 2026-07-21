@@ -65,6 +65,7 @@ const en = {
       badInput: "Input does not contain the Neo X Envelope prefix and layout.",
     },
     ariaMenu: "Neo X menu",
+    addressQrAria: "Address QR code",
     showTimestampsAsAge: "Show timestamps as age",
     showTimestampsAsUtc: "Show timestamps as UTC",
     toggleAgeUtc: "Click to toggle Age / UTC",

@@ -65,6 +65,7 @@ const zh = {
       badInput: "输入不包含 Neo X 信封前缀与布局。",
     },
     ariaMenu: "Neo X 菜单",
+    addressQrAria: "地址二维码",
     showTimestampsAsAge: "以相对时间显示时间戳",
     showTimestampsAsUtc: "以 UTC 显示时间戳",
     toggleAgeUtc: "点击切换 相对时间 / UTC",

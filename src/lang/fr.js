@@ -65,6 +65,7 @@ const fr = {
       badInput: "L'entrée ne contient pas le préfixe et la disposition d'enveloppe Neo X.",
     },
     ariaMenu: "Menu Neo X",
+    addressQrAria: "Code QR de l'adresse",
     showTimestampsAsAge: "Afficher les horodatages en âge",
     showTimestampsAsUtc: "Afficher les horodatages en UTC",
     toggleAgeUtc: "Cliquer pour basculer Âge / UTC",
