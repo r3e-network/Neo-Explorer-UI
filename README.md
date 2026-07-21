@@ -140,7 +140,7 @@ The v1 server-side verification flow expects a verifiable Neo public key from th
 ### Prerequisites
 
 - Node.js 22.x (application, build, and serverless runtime)
-- Bun 1.3.14 (dependency installation only)
+- Bun 1.3.12 (dependency installation only)
 
 ### Local Development
 
