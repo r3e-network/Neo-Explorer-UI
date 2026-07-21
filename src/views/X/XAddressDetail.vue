@@ -100,7 +100,9 @@
                 <div class="rounded-lg bg-white p-2">
                   <QrcodeVue :value="addr" :size="150" level="H" />
                 </div>
-                <p class="text-mid max-w-[200px] break-all text-center font-hash text-[10px]">
+                <!-- Panel is intentionally white in both themes (QR scan contrast),
+                     so the caption needs a fixed dark color, not a themed token. -->
+                <p class="max-w-[200px] break-all text-center font-hash text-[10px] text-slate-600">
                   {{ addr }}
                 </p>
               </div>

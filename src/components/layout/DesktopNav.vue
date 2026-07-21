@@ -5,6 +5,7 @@
     </li>
     <li
       class="nav-dropdown group"
+      data-dropdown="blockchain"
       @mouseenter="$emit('open-dropdown', 'blockchain')"
       @mouseleave="$emit('close-dropdown', 'blockchain')"
       @focusout="handleFocusOut('blockchain')"
@@ -47,6 +48,7 @@
     </li>
     <li
       class="nav-dropdown group"
+      data-dropdown="tokens"
       @mouseenter="$emit('open-dropdown', 'tokens')"
       @mouseleave="$emit('close-dropdown', 'tokens')"
       @focusout="handleFocusOut('tokens')"
@@ -87,13 +89,14 @@
     </li>
     <li
       class="nav-dropdown group"
+      data-dropdown="neox"
       @mouseenter="$emit('open-dropdown', 'neox')"
       @mouseleave="$emit('close-dropdown', 'neox')"
       @focusout="handleFocusOut('neox')"
     >
       <button
         class="nav-link"
-        aria-label="Neox menu"
+        :aria-label="tf('neoX.ariaMenu', 'Neo X menu')"
         aria-haspopup="true"
         :aria-expanded="activeDropdown === 'neox'"
         @click="$emit(activeDropdown === 'neox' ? 'close-dropdown' : 'open-dropdown', 'neox')"
@@ -128,6 +131,7 @@
     </li>
     <li
       class="nav-dropdown group"
+      data-dropdown="resources"
       @mouseenter="$emit('open-dropdown', 'resources')"
       @mouseleave="$emit('close-dropdown', 'resources')"
       @focusout="handleFocusOut('resources')"
@@ -167,6 +171,7 @@
     </li>
     <li
       class="nav-dropdown group"
+      data-dropdown="developers"
       @mouseenter="$emit('open-dropdown', 'developers')"
       @mouseleave="$emit('close-dropdown', 'developers')"
       @focusout="handleFocusOut('developers')"
@@ -208,18 +213,26 @@
 </template>
 
 <script setup>
+import { useI18n } from "vue-i18n";
+
 const emit = defineEmits(["open-dropdown", "close-dropdown"]);
 
 defineProps({
   activeDropdown: { type: String, default: null },
 });
 
+const { t } = useI18n();
+const tf = (key, fallback) => {
+  const value = t(key);
+  return value === key ? fallback : value;
+};
+
 function handleFocusOut(name) {
   setTimeout(() => {
     const el = document.activeElement;
-    const dropdown = document.querySelector(
-      `.nav-dropdown:has([aria-label="${name.charAt(0).toUpperCase() + name.slice(1)} menu"])`
-    );
+    // Keyed off data-dropdown, never translated aria-label text — the lookup
+    // must work identically in every locale.
+    const dropdown = document.querySelector(`.nav-dropdown[data-dropdown="${name}"]`);
     if (dropdown && !dropdown.contains(el)) {
       emit("close-dropdown", name);
     }

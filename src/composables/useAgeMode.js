@@ -41,6 +41,22 @@ function toggleAgeMode() {
   }
 }
 
+// Shared ticking "now" dependency: one module-level 30s interval bumps this
+// ref, and formatWhen reads it in age mode, so every rendered Age cell
+// re-renders (and re-reads Date.now()) without callers passing a ticking
+// nowMs. Ticks are skipped while the tab is hidden; the next interval after
+// it becomes visible catches ages up.
+const NOW_TICK_INTERVAL_MS = 30_000;
+const nowTick = ref(0);
+let nowTickTimer = null;
+
+function ensureNowTicking() {
+  if (nowTickTimer || typeof window === "undefined" || typeof window.setInterval !== "function") return;
+  nowTickTimer = window.setInterval(() => {
+    if (typeof document === "undefined" || !document.hidden) nowTick.value += 1;
+  }, NOW_TICK_INTERVAL_MS);
+}
+
 const pad2 = (n) => String(n).padStart(2, "0");
 
 /** Compact UTC string ("YYYY-MM-DD HH:mm:ss") from ms since epoch. */
@@ -57,12 +73,18 @@ function formatUtc(ms) {
  * Format a timestamp according to the current mode: relative age
  * ("12s ago") or compact UTC ("2026-07-21 08:30:00").
  *
+ * In age mode the call registers a reactive dependency on a shared 30s
+ * ticker, so ages rendered in templates keep moving on their own.
+ *
  * @param {number} ms - Timestamp in ms since epoch.
- * @param {number} [nowMs] - "Now" for age mode (e.g. a ticking useNow ref).
+ * @param {number} [nowMs] - Explicit "now" override for deterministic output.
  * @returns {string}
  */
-function formatWhen(ms, nowMs = Date.now()) {
-  return ageMode.value === MODE_UTC ? formatUtc(ms) : timeAgo(ms, nowMs);
+function formatWhen(ms, nowMs) {
+  if (ageMode.value === MODE_UTC) return formatUtc(ms);
+  ensureNowTicking();
+  void nowTick.value; // reactive dependency — see ensureNowTicking()
+  return timeAgo(ms, nowMs ?? Date.now());
 }
 
 export function useAgeMode() {

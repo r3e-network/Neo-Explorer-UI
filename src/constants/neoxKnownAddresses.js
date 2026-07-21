@@ -93,13 +93,15 @@ export const NEOX_KNOWN_ADDRESSES = [
 ];
 
 /** Badge metadata per role tag. */
+// `accent` is the single source of truth for role accent colors — the
+// XHashLink identity dots and the XLabels section headers must stay in sync.
 export const NEOX_ROLE_META = {
-  bridge: { label: "Bridge" },
-  governance: { label: "Governance" },
-  oracle: { label: "Oracle" },
-  validator: { label: "Validator" },
-  token: { label: "Token" },
-  infra: { label: "Infra" },
+  bridge: { label: "Bridge", accent: "#38bdf8" },
+  governance: { label: "Governance", accent: "#a78bfa" },
+  oracle: { label: "Oracle", accent: "#fbbf24" },
+  validator: { label: "Validator", accent: "var(--status-success)" },
+  token: { label: "Token", accent: "#f59e0b" },
+  infra: { label: "Infra", accent: "#94a3b8" },
 };
 
 // Per-network lowercase lookup maps, built once at module init. Entries with

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { computed } from "vue";
 
 const STORAGE_KEY = "neo_explorer_x_age_mode";
 
@@ -75,6 +76,47 @@ describe("useAgeMode", () => {
     const { useAgeMode } = await importAgeMode();
     const { formatWhen } = useAgeMode();
     expect(formatWhen(Date.UTC(2026, 0, 2, 3, 4, 5))).toBe("2026-01-02 03:04:05");
+  });
+
+  it("rendered ages tick on their own via the shared 30s timer", async () => {
+    vi.useFakeTimers();
+    const base = Date.UTC(2026, 6, 21, 8, 0, 0);
+    vi.setSystemTime(base);
+    const { useAgeMode } = await importAgeMode();
+    const { formatWhen } = useAgeMode();
+
+    // A computed stands in for a template render: reading formatWhen must
+    // register a dependency on the internal ticker so the cell re-renders.
+    const label = computed(() => formatWhen(base - 5_000));
+    expect(label.value).toBe("5s ago");
+
+    // One 30s tick: the cached computed is invalidated and re-reads Date.now.
+    vi.advanceTimersByTime(30_000);
+    expect(label.value).toBe("35s ago");
+
+    vi.advanceTimersByTime(30_000);
+    expect(label.value).toBe("1m ago");
+  });
+
+  it("pauses ticking while the document is hidden", async () => {
+    vi.useFakeTimers();
+    const base = Date.UTC(2026, 6, 21, 8, 0, 0);
+    vi.setSystemTime(base);
+    const { useAgeMode } = await importAgeMode();
+    const { formatWhen } = useAgeMode();
+
+    const label = computed(() => formatWhen(base - 5_000));
+    expect(label.value).toBe("5s ago");
+
+    const hiddenSpy = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    vi.advanceTimersByTime(30_000);
+    // Hidden tab: no tick, so the cached computed is not invalidated.
+    expect(label.value).toBe("5s ago");
+
+    hiddenSpy.mockReturnValue(false);
+    vi.advanceTimersByTime(30_000);
+    expect(label.value).toBe("1m ago");
+    hiddenSpy.mockRestore();
   });
 
   it("formatWhen returns an em dash for invalid timestamps in both modes", async () => {

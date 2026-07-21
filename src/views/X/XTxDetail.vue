@@ -63,22 +63,30 @@
       <ErrorState v-else-if="error" :title="tf('neoX.transactionsErrorTitle', 'Unable to load transactions')" :message="error" @retry="load" />
 
       <!-- Pending hash: not indexed yet — bounded auto-poll before declaring not found -->
-      <div v-else-if="polling" class="etherscan-card p-6 text-center" role="status">
+      <div v-else-if="polling" class="etherscan-card p-6 text-center">
         <svg class="mx-auto h-8 w-8 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
-        <p class="text-high mt-3 text-base font-semibold">
-          {{ tf("neoX.txPendingTitle", "Transaction not found yet") }}
-        </p>
-        <p class="text-mid mt-1 text-sm">
-          {{ tf("neoX.txPendingBody", "It may still be propagating or pending. Retrying automatically…") }}
-        </p>
+        <!-- Announced once; the ticking attempt counter lives outside the live
+             region so each 5s tick does not re-read the whole panel. -->
+        <div role="status">
+          <p class="text-high mt-3 text-base font-semibold">
+            {{ tf("neoX.txPendingTitle", "Transaction not found yet") }}
+          </p>
+          <p class="text-mid mt-1 text-sm">
+            {{ tf("neoX.txPendingBody", "It may still be propagating or pending. Retrying automatically…") }}
+          </p>
+        </div>
         <p class="text-low mt-2 text-xs">{{ pollAttempt }}/{{ MAX_POLL_ATTEMPTS }}</p>
       </div>
 
       <div v-else-if="notFound">
-        <EmptyState :message="tf('neoX.notFound', 'Transaction not found.')" icon="tx" />
+        <!-- role=status: the terminal outcome after the "retrying" announcements
+             must itself be announced — EmptyState has no live semantics. -->
+        <div role="status">
+          <EmptyState :message="tf('neoX.notFound', 'Transaction not found.')" icon="tx" />
+        </div>
         <div v-if="pollExhausted" class="pb-6 text-center">
           <button type="button" class="btn-outline gap-1.5 px-3 py-1.5 text-xs" @click="load">
             {{ tf("neoX.retry", "Retry") }}
@@ -619,5 +627,11 @@ async function load() {
 onMounted(load);
 watch(() => route.params.txhash, load);
 useNetworkChange(load);
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  // Bump reqId too: stopPolling alone cannot cancel a poll callback that is
+  // already awaiting getByHash — the guard must fail when it resolves, or the
+  // chain re-arms setTimeout on the destroyed component.
+  reqId += 1;
+  stopPolling();
+});
 </script>

@@ -40,7 +40,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import { shortHash } from "@/utils/neoxFormat";
-import { resolveNeoxIdentity } from "@/constants/neoxKnownAddresses";
+import { NEOX_ROLE_META, resolveNeoxIdentity } from "@/constants/neoxKnownAddresses";
 import { getNeoxNet } from "@/utils/neoxEnv";
 import { NETWORK_CHANGE_EVENT } from "@/utils/env";
 
@@ -70,16 +70,6 @@ const props = defineProps({
   // Set false to skip the official-address registry lookup.
   identity: { type: Boolean, default: true },
 });
-
-// Role dot colors for registry-labeled addresses.
-const ROLE_DOT_COLORS = {
-  bridge: "#38bdf8",
-  governance: "#a78bfa",
-  oracle: "#fbbf24",
-  validator: "var(--status-success)",
-  token: "#f59e0b",
-  infra: "#94a3b8",
-};
 
 const IDENTITY_TYPES = new Set(["address", "contract", "token"]);
 
@@ -130,7 +120,7 @@ const display = computed(() => {
 const roleDotColor = computed(() => {
   const identity = registryIdentity.value;
   if (!identity) return null;
-  return ROLE_DOT_COLORS[identity.role] || ROLE_DOT_COLORS.infra;
+  return NEOX_ROLE_META[identity.role]?.accent || NEOX_ROLE_META.infra.accent;
 });
 
 const titleAttr = computed(() =>

@@ -258,8 +258,20 @@ function downloadPng() {
   // The canvas only exists in the data branch and the chart draws async —
   // bail quietly until there is a rendered chart to snapshot.
   if (!chartCanvas.value || !chartInstance) return;
+  const source = chartCanvas.value;
+  // Chart.js leaves the canvas background transparent; composite onto the
+  // current theme's page background so dark-theme exports stay legible in
+  // white-background viewers instead of shipping near-invisible labels.
+  const target = document.createElement("canvas");
+  target.width = source.width;
+  target.height = source.height;
+  const targetCtx = target.getContext("2d");
+  targetCtx.fillStyle =
+    getComputedStyle(document.documentElement).getPropertyValue("--page-bg").trim() || "#ffffff";
+  targetCtx.fillRect(0, 0, target.width, target.height);
+  targetCtx.drawImage(source, 0, 0);
   const link = document.createElement("a");
-  link.href = chartCanvas.value.toDataURL("image/png");
+  link.href = target.toDataURL("image/png");
   link.download = `${props.lineId}.png`;
   link.style.visibility = "hidden";
   document.body.appendChild(link);

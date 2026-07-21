@@ -19,20 +19,20 @@
               <div class="flex flex-wrap items-center gap-2">
                 <h1 class="page-title">Anti-MEV Center</h1>
                 <span v-if="status?.active === true" class="rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success">
-                  Active
+                  {{ tf("neoX.antiMev.active", "Active") }}
                 </span>
                 <span v-else-if="status?.active === false" class="rounded bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning">
-                  Not active at head
+                  {{ tf("neoX.antiMev.notActiveAtHead", "Not active at head") }}
                 </span>
-                <span v-else class="badge-soft text-xs">Status unavailable</span>
+                <span v-else class="badge-soft text-xs">{{ tf("neoX.antiMev.statusUnavailable", "Status unavailable") }}</span>
               </div>
-              <p class="page-subtitle mt-1">{{ netLabel }} · Enveloped Transactions · Enhanced dBFT</p>
+              <p class="page-subtitle mt-1">{{ netLabel }} · {{ tf("neoX.antiMev.heroSubtitle", "Enveloped Transactions · Enhanced dBFT") }}</p>
             </div>
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <a :href="senderUrl" target="_blank" rel="noopener noreferrer" class="btn-primary">Open Anti-MEV Sender</a>
-            <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="btn-outline">Protocol Docs</a>
+            <a :href="senderUrl" target="_blank" rel="noopener noreferrer" class="btn-primary">{{ tf("neoX.antiMev.openSender", "Open Anti-MEV Sender") }}</a>
+            <a :href="docsUrl" target="_blank" rel="noopener noreferrer" class="btn-outline">{{ tf("neoX.antiMev.protocolDocs", "Protocol Docs") }}</a>
           </div>
         </div>
       </section>
@@ -43,38 +43,38 @@
       <ErrorState v-else-if="error && !status" class="mt-6" :message="error" @retry="loadStatus" />
       <section v-else class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 animate-page-enter animate-page-enter-delay-1">
         <div class="etherscan-card p-4">
-          <p class="stat-label">Protocol</p>
+          <p class="stat-label">{{ tf("neoX.antiMev.protocol", "Protocol") }}</p>
           <p class="mt-2 text-xl font-bold text-high">{{ protocolStatusLabel }}</p>
-          <p class="mt-1 text-xs text-mid">Since block {{ formatInt(profile.activationHeight) }} · {{ profile.activationVersion }}</p>
+          <p class="mt-1 text-xs text-mid">{{ tf("neoX.antiMev.sinceBlock", "Since block") }} {{ formatInt(profile.activationHeight) }} · {{ profile.activationVersion }}</p>
         </div>
         <div class="etherscan-card p-4">
-          <p class="stat-label">Envelope Fee</p>
+          <p class="stat-label">{{ tf("neoX.antiMev.envelopeFee", "Envelope Fee") }}</p>
           <p class="mt-2 text-xl font-bold text-high">{{ envelopeFeeLabel }}</p>
-          <p class="mt-1 text-xs text-mid">Live node policy</p>
+          <p class="mt-1 text-xs text-mid">{{ tf("neoX.antiMev.liveNodePolicy", "Live node policy") }}</p>
         </div>
         <div class="etherscan-card p-4">
-          <p class="stat-label">Latest DKG Round</p>
+          <p class="stat-label">{{ tf("neoX.antiMev.latestDkgRound", "Latest DKG Round") }}</p>
           <p class="mt-2 text-xl font-bold text-high">{{ status?.latestDkgRound ?? "—" }}</p>
-          <p class="mt-1 text-xs text-mid">Observed public Envelope records</p>
+          <p class="mt-1 text-xs text-mid">{{ tf("neoX.antiMev.observedRecords", "Observed public Envelope records") }}</p>
         </div>
         <div class="etherscan-card p-4">
-          <p class="stat-label">Finality</p>
-          <p class="mt-2 text-xl font-bold text-high">Single block</p>
-          <p class="mt-1 text-xs text-mid">Threshold block signatures</p>
+          <p class="stat-label">{{ tf("neoX.antiMev.finality", "Finality") }}</p>
+          <p class="mt-2 text-xl font-bold text-high">{{ tf("neoX.antiMev.singleBlock", "Single block") }}</p>
+          <p class="mt-1 text-xs text-mid">{{ tf("neoX.antiMev.thresholdSignatures", "Threshold block signatures") }}</p>
         </div>
       </section>
 
       <section class="mt-6 border-y border-line-soft py-5 animate-page-enter animate-page-enter-delay-2" aria-labelledby="anti-mev-flow-title">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 id="anti-mev-flow-title" class="text-base font-semibold text-high">Consensus protection flow</h2>
-            <p class="mt-1 text-xs text-mid">Order commitment precedes threshold decryption.</p>
+            <h2 id="anti-mev-flow-title" class="text-base font-semibold text-high">{{ tf("neoX.antiMev.flowTitle", "Consensus protection flow") }}</h2>
+            <p class="mt-1 text-xs text-mid">{{ tf("neoX.antiMev.flowSubtitle", "Order commitment precedes threshold decryption.") }}</p>
           </div>
-          <span class="badge-soft text-xs">2f+1 validator threshold</span>
+          <span class="badge-soft text-xs">{{ tf("neoX.antiMev.validatorThreshold", "2f+1 validator threshold") }}</span>
         </div>
         <ol class="grid gap-3 md:grid-cols-4">
           <li v-for="(step, index) in flowSteps" :key="step.title" class="min-w-0 border-l-2 border-primary-400 px-3 py-1">
-            <p class="text-[10px] font-semibold uppercase text-low">Phase {{ index + 1 }}</p>
+            <p class="text-[10px] font-semibold uppercase text-low">{{ tf("neoX.antiMev.phase", "Phase") }} {{ index + 1 }}</p>
             <p class="mt-1 text-sm font-semibold text-high">{{ step.title }}</p>
             <p class="mt-1 text-xs leading-relaxed text-mid">{{ step.detail }}</p>
           </li>
@@ -85,26 +85,26 @@
         <section class="etherscan-card overflow-hidden" aria-labelledby="envelope-inspector-title">
           <header class="card-header">
             <div>
-              <h2 id="envelope-inspector-title" class="text-base font-semibold text-high">Envelope Inspector</h2>
-              <p class="mt-0.5 text-xs text-mid">Transaction hash or raw calldata</p>
+              <h2 id="envelope-inspector-title" class="text-base font-semibold text-high">{{ tf("neoX.antiMev.inspectorTitle", "Envelope Inspector") }}</h2>
+              <p class="mt-0.5 text-xs text-mid">{{ tf("neoX.antiMev.inspectorSubtitle", "Transaction hash or raw calldata") }}</p>
             </div>
           </header>
           <form class="p-4 md:p-5" @submit.prevent="inspectInput">
-            <label for="anti-mev-input" class="mb-2 block text-sm font-medium text-high">Public input</label>
+            <label for="anti-mev-input" class="mb-2 block text-sm font-medium text-high">{{ tf("neoX.antiMev.publicInput", "Public input") }}</label>
             <textarea
               id="anti-mev-input"
               v-model="inspectorInput"
               rows="4"
               spellcheck="false"
               class="w-full resize-y rounded-lg border border-line-soft bg-surface px-3 py-2 font-hash text-xs text-high outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              placeholder="0x transaction hash or 0xffffffff Envelope calldata"
+              :placeholder="tf('neoX.antiMev.inspectorPlaceholder', '0x transaction hash or 0xffffffff Envelope calldata')"
             ></textarea>
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <button type="submit" class="btn-primary" :disabled="inspecting || !inspectorInput.trim()">
-                {{ inspecting ? "Inspecting..." : "Inspect Envelope" }}
+                {{ inspecting ? tf("neoX.antiMev.inspecting", "Inspecting...") : tf("neoX.antiMev.inspectEnvelope", "Inspect Envelope") }}
               </button>
               <button v-if="status?.recentEnvelopes?.length" type="button" class="btn-outline" @click="inspectTransaction(status.recentEnvelopes[0])">
-                Load recent record
+                {{ tf("neoX.antiMev.loadRecent", "Load recent record") }}
               </button>
             </div>
 
@@ -114,31 +114,40 @@
 
             <dl v-if="inspection" class="soft-divider mt-5 divide-y border-y">
               <div class="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
-                <dt class="text-xs text-mid">Structure</dt>
+                <dt class="text-xs text-mid">{{ tf("neoX.antiMev.structure", "Structure") }}</dt>
                 <dd class="text-sm font-semibold" :class="inspection.isStructurallyValid ? 'text-status-success' : 'text-status-warning'">
-                  {{ inspection.isStructurallyValid ? "Valid public Envelope layout" : "Envelope-like, structurally invalid" }}
+                  {{
+                    inspection.isStructurallyValid
+                      ? tf("neoX.antiMev.structureValid", "Valid public Envelope layout")
+                      : tf("neoX.antiMev.structureInvalid", "Envelope-like, structurally invalid")
+                  }}
                 </dd>
               </div>
               <div class="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
-                <dt class="text-xs text-mid">DKG round</dt>
+                <dt class="text-xs text-mid">{{ tf("neoX.antiMev.dkgRound", "DKG round") }}</dt>
                 <dd class="font-hash text-sm text-high">{{ inspection.dkgRound ?? "—" }}</dd>
               </div>
               <div class="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
-                <dt class="text-xs text-mid">Reserved gas</dt>
+                <dt class="text-xs text-mid">{{ tf("neoX.antiMev.reservedGas", "Reserved gas") }}</dt>
                 <dd class="font-hash text-sm text-high">{{ formatInt(inspection.encryptedGas) }}</dd>
               </div>
               <div class="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
-                <dt class="text-xs text-mid">Inner transaction commitment</dt>
+                <dt class="text-xs text-mid">{{ tf("neoX.antiMev.innerCommitment", "Inner transaction commitment") }}</dt>
                 <dd class="min-w-0 break-all font-hash text-xs text-high">{{ inspection.innerTransactionHash || "—" }}</dd>
               </div>
               <div class="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
-                <dt class="text-xs text-mid">Encrypted payload</dt>
-                <dd class="font-hash text-sm text-high">{{ formatInt(inspection.encryptedPayloadBytes) }} bytes</dd>
+                <dt class="text-xs text-mid">{{ tf("neoX.antiMev.encryptedPayload", "Encrypted payload") }}</dt>
+                <dd class="font-hash text-sm text-high">{{ formatInt(inspection.encryptedPayloadBytes) }} {{ tf("neoX.antiMev.bytes", "bytes") }}</dd>
               </div>
             </dl>
 
             <p v-if="inspection?.canonicalRecord" class="mt-4 text-xs leading-relaxed text-mid">
-              This outer Envelope remains in the canonical block. Public explorer data cannot prove successful inner-transaction decryption from this record alone.
+              {{
+                tf(
+                  "neoX.antiMev.canonicalNote",
+                  "This outer Envelope remains in the canonical block. Public explorer data cannot prove successful inner-transaction decryption from this record alone."
+                )
+              }}
             </p>
           </form>
         </section>
@@ -146,8 +155,8 @@
         <section class="etherscan-card overflow-hidden" aria-labelledby="recent-envelope-title">
           <header class="card-header">
             <div>
-              <h2 id="recent-envelope-title" class="text-base font-semibold text-high">Recent Envelope Records</h2>
-              <p class="mt-0.5 text-xs text-mid">GovReward calls with the reserved `0xffffffff` prefix</p>
+              <h2 id="recent-envelope-title" class="text-base font-semibold text-high">{{ tf("neoX.antiMev.recentTitle", "Recent Envelope Records") }}</h2>
+              <p class="mt-0.5 text-xs text-mid">{{ tf("neoX.antiMev.recentSubtitle", "GovReward calls with the reserved `0xffffffff` prefix") }}</p>
             </div>
             <RouterLink :to="`/x/address/${govRewardAddress}`" class="btn-outline text-xs">GovReward</RouterLink>
           </header>
@@ -155,13 +164,13 @@
             <table class="w-full min-w-[800px]">
               <thead class="table-head">
                 <tr>
-                  <th class="table-header-cell">Transaction</th>
-                  <th class="table-header-cell">Structure</th>
-                  <th class="table-header-cell">Block</th>
-                  <th class="table-header-cell">DKG Round</th>
-                  <th class="table-header-cell">Reserved Gas</th>
-                  <th class="table-header-cell">Payload</th>
-                  <th class="table-header-cell"><span class="sr-only">Actions</span></th>
+                  <th class="table-header-cell">{{ tf("neoX.antiMev.transaction", "Transaction") }}</th>
+                  <th class="table-header-cell">{{ tf("neoX.antiMev.structure", "Structure") }}</th>
+                  <th class="table-header-cell">{{ tf("neoX.block", "Block") }}</th>
+                  <th class="table-header-cell">{{ tf("neoX.antiMev.dkgRoundHeader", "DKG Round") }}</th>
+                  <th class="table-header-cell">{{ tf("neoX.antiMev.reservedGasHeader", "Reserved Gas") }}</th>
+                  <th class="table-header-cell">{{ tf("neoX.antiMev.payload", "Payload") }}</th>
+                  <th class="table-header-cell"><span class="sr-only">{{ tf("neoX.antiMev.actions", "Actions") }}</span></th>
                 </tr>
               </thead>
               <tbody class="soft-divider divide-y">
@@ -175,9 +184,13 @@
                           ? 'bg-status-success-bg text-status-success'
                           : 'bg-status-warning-bg text-status-warning'
                       "
-                      :title="transaction.antiMev.issues?.join(' ') || 'Public Envelope layout is structurally valid.'"
+                      :title="transaction.antiMev.issues?.join(' ') || tf('neoX.antiMev.validTitle', 'Public Envelope layout is structurally valid.')"
                     >
-                      {{ transaction.antiMev.isStructurallyValid ? "Valid" : "Invalid" }}
+                      {{
+                        transaction.antiMev.isStructurallyValid
+                          ? tf("neoX.antiMev.valid", "Valid")
+                          : tf("neoX.antiMev.invalid", "Invalid")
+                      }}
                     </span>
                   </td>
                   <td class="table-cell"><XHashLink type="block" :hash="String(transaction.blockIndex)" :label="`#${formatInt(transaction.blockIndex)}`" /></td>
@@ -185,13 +198,15 @@
                   <td class="table-cell">{{ formatInt(transaction.antiMev.encryptedGas) }}</td>
                   <td class="table-cell">{{ formatInt(transaction.antiMev.encryptedPayloadBytes) }} B</td>
                   <td class="table-cell text-right">
-                    <button type="button" class="etherscan-link text-xs font-semibold" @click="inspectTransaction(transaction)">Inspect</button>
+                    <button type="button" class="etherscan-link text-xs font-semibold" @click="inspectTransaction(transaction)">
+                      {{ tf("neoX.antiMev.inspect", "Inspect") }}
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <EmptyState v-else message="No public Envelope records in the current indexer window." icon="tx" />
+          <EmptyState v-else :message="tf('neoX.antiMev.noRecords', 'No public Envelope records in the current indexer window.')" icon="tx" />
         </section>
       </div>
     </div>
@@ -240,20 +255,34 @@ const govRewardAddress = NEOX_GOV_REWARD_ADDRESS;
 const profile = computed(() => getNeoxAntiMevProfile(activeNet.value));
 const netLabel = computed(() => getNeoxLabel(activeNet.value));
 const protocolStatusLabel = computed(() => {
-  if (status.value?.active === true) return "Active";
-  if (status.value?.active === false) return "Inactive";
-  return "Unavailable";
+  if (status.value?.active === true) return tf("neoX.antiMev.active", "Active");
+  if (status.value?.active === false) return tf("neoX.antiMev.inactive", "Inactive");
+  return tf("neoX.antiMev.unavailable", "Unavailable");
 });
 const envelopeFeeLabel = computed(() =>
-  status.value?.envelopeFeeWei == null ? "Unavailable" : `${formatGwei(status.value.envelopeFeeWei)} Gwei`
+  status.value?.envelopeFeeWei == null
+    ? tf("neoX.antiMev.unavailable", "Unavailable")
+    : `${formatGwei(status.value.envelopeFeeWei)} Gwei`
 );
 
-const flowSteps = [
-  { title: "Envelope", detail: "Transaction details are encrypted before consensus." },
-  { title: "PreBlock / Shadow Block", detail: "PrepareResponse fixes transaction order before decryption." },
-  { title: "PreCommit", detail: "At least 2f+1 validators contribute decryption shares." },
-  { title: "Final Block", detail: "Decrypted execution is committed with single-block finality." },
-];
+const flowSteps = computed(() => [
+  {
+    title: tf("neoX.antiMev.stepEnvelopeTitle", "Envelope"),
+    detail: tf("neoX.antiMev.stepEnvelopeDetail", "Transaction details are encrypted before consensus."),
+  },
+  {
+    title: tf("neoX.antiMev.stepPreBlockTitle", "PreBlock / Shadow Block"),
+    detail: tf("neoX.antiMev.stepPreBlockDetail", "PrepareResponse fixes transaction order before decryption."),
+  },
+  {
+    title: tf("neoX.antiMev.stepPreCommitTitle", "PreCommit"),
+    detail: tf("neoX.antiMev.stepPreCommitDetail", "At least 2f+1 validators contribute decryption shares."),
+  },
+  {
+    title: tf("neoX.antiMev.stepFinalBlockTitle", "Final Block"),
+    detail: tf("neoX.antiMev.stepFinalBlockDetail", "Decrypted execution is committed with single-block finality."),
+  },
+]);
 
 async function loadStatus() {
   const current = ++requestId;
@@ -264,7 +293,7 @@ async function loadStatus() {
     const result = await antiMevService.getStatus({ net: activeNet.value, force: true });
     if (current === requestId) status.value = result;
   } catch (_err) {
-    if (current === requestId) error.value = "Unable to load live Anti-MEV status.";
+    if (current === requestId) error.value = tf("neoX.antiMev.loadError", "Unable to load live Anti-MEV status.");
   } finally {
     if (current === requestId) loading.value = false;
   }
@@ -273,7 +302,9 @@ async function loadStatus() {
 function inspectTransaction(transaction) {
   inspectorInput.value = transaction.hash || transaction.rawInput || "";
   inspection.value = transaction.antiMev || parseNeoxEnvelopeData(transaction.rawInput);
-  inspectError.value = inspection.value ? "" : "This transaction is not a recognized Neo X Envelope.";
+  inspectError.value = inspection.value
+    ? ""
+    : tf("neoX.antiMev.notEnvelope", "This transaction is not a recognized Neo X Envelope.");
 }
 
 async function inspectInput() {
@@ -286,10 +317,13 @@ async function inspectInput() {
     inspecting.value = true;
     try {
       const transaction = await transactionService.getByHash(value, { net: activeNet.value });
-      if (!transaction) inspectError.value = "Transaction not found on the selected Neo X network.";
-      else inspectTransaction(transaction);
+      if (!transaction) {
+        inspectError.value = tf("neoX.antiMev.txNotFound", "Transaction not found on the selected Neo X network.");
+      } else {
+        inspectTransaction(transaction);
+      }
     } catch (_err) {
-      inspectError.value = "Unable to load the transaction from the Neo X indexer.";
+      inspectError.value = tf("neoX.antiMev.txLoadError", "Unable to load the transaction from the Neo X indexer.");
     } finally {
       inspecting.value = false;
     }
@@ -297,7 +331,9 @@ async function inspectInput() {
   }
 
   inspection.value = parseNeoxEnvelopeData(value);
-  if (!inspection.value) inspectError.value = "Input does not contain the Neo X Envelope prefix and layout.";
+  if (!inspection.value) {
+    inspectError.value = tf("neoX.antiMev.badInput", "Input does not contain the Neo X Envelope prefix and layout.");
+  }
 }
 
 onMounted(loadStatus);

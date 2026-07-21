@@ -16,6 +16,13 @@ describe("vite config warning and chunk helpers", () => {
     expect(getManualChunkName("/tmp/node_modules/readable-stream/lib/_stream_readable.js")).toBe("node-runtime");
   });
 
+  it("keeps qrcode.vue in its own lazy chunk instead of the eager vue-core chunk", () => {
+    expect(getManualChunkName("/tmp/node_modules/qrcode.vue/dist/qrcode.vue.esm.js")).toBe("qrcode");
+    expect(getManualChunkName("/tmp/node_modules/vue/dist/vue.runtime.esm-bundler.js")).toBe("vue-core");
+    expect(getManualChunkName("/tmp/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js")).toBe("vue-core");
+    expect(getManualChunkName("/tmp/node_modules/vue-router/dist/vue-router.mjs")).toBe("vue-core");
+  });
+
   it("suppresses the known ox PURE annotation warning", () => {
     expect(
       shouldIgnoreRollupWarning({

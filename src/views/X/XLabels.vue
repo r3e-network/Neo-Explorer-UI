@@ -99,16 +99,6 @@ const tf = (key, fallback) => {
 
 const ROLE_ORDER = ["governance", "bridge", "oracle", "validator", "token", "infra"];
 
-// Same role accent colors as the XHashLink identity dots.
-const ROLE_COLORS = {
-  bridge: "#38bdf8",
-  governance: "#a78bfa",
-  oracle: "#fbbf24",
-  validator: "var(--status-success)",
-  token: "#f59e0b",
-  infra: "#94a3b8",
-};
-
 const currentNetName = ref(resolveNeoxNetName(getNeoxNet()));
 useNetworkChange(() => {
   currentNetName.value = resolveNeoxNetName(getNeoxNet());
@@ -125,7 +115,7 @@ const sections = computed(() =>
     return {
       role,
       label: NEOX_ROLE_META[role]?.label || role,
-      color: ROLE_COLORS[role],
+      color: NEOX_ROLE_META[role]?.accent,
       entries,
     };
   }).filter((section) => section.entries.length > 0)

@@ -369,14 +369,17 @@ export function getManualChunkName(id) {
   ) {
     return "syntax";
   }
+  if (id.includes("qrcode.vue")) {
+    // Must precede the generic "vue" rule: "qrcode.vue" contains "vue" and
+    // would otherwise be swallowed into the eager vue-core entry chunk,
+    // defeating the lazy defineAsyncComponent consumers.
+    return "qrcode";
+  }
   if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
     return "vue-core";
   }
   if (id.includes("axios")) {
     return "axios";
-  }
-  if (id.includes("qrcode.vue")) {
-    return "qrcode";
   }
   if (id.includes("react-qrcode-logo") || id.includes("qrcode-generator")) {
     return "web3auth";

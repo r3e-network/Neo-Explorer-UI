@@ -14,7 +14,11 @@
             <button
               type="button"
               class="cursor-pointer select-none hover:text-primary-500"
-              :aria-pressed="ageMode === 'utc'"
+              :aria-label="
+                ageMode === 'utc'
+                  ? tf('neoX.showTimestampsAsAge', 'Show timestamps as age')
+                  : tf('neoX.showTimestampsAsUtc', 'Show timestamps as UTC')
+              "
               :title="tf('neoX.toggleAgeUtc', 'Click to toggle Age / UTC')"
               @click="toggleAgeMode"
             >

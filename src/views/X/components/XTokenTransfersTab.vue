@@ -23,7 +23,29 @@
               <th scope="col" class="table-header-cell">{{ tf("neoX.txnCount", "Txn") }}</th>
               <th scope="col" class="table-header-cell">{{ tf("neoX.amount", "Amount") }}</th>
               <th scope="col" class="table-header-cell">{{ tf("neoX.fromTo", "From → To") }}</th>
-              <th scope="col" class="table-header-cell">{{ tf("neoX.age", "Age") }}</th>
+              <th scope="col" class="table-header-cell">
+                <button
+                  type="button"
+                  class="cursor-pointer select-none hover:text-primary-500"
+                  :aria-label="
+                    ageMode === 'utc'
+                      ? tf('neoX.showTimestampsAsAge', 'Show timestamps as age')
+                      : tf('neoX.showTimestampsAsUtc', 'Show timestamps as UTC')
+                  "
+                  :title="tf('neoX.toggleAgeUtc', 'Click to toggle Age / UTC')"
+                  @click="toggleAgeMode"
+                >
+                  {{ ageMode === "utc" ? tf("neoX.dateTimeUtc", "Date Time (UTC)") : tf("neoX.age", "Age") }}
+                  <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                    />
+                  </svg>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody v-if="items.length" class="soft-divider divide-y">
@@ -72,7 +94,7 @@
                   <span v-else class="text-mid">—</span>
                 </div>
               </td>
-              <td class="table-cell-secondary whitespace-nowrap">{{ timeAgo(toMs(transfer.timestamp)) }}</td>
+              <td class="table-cell-secondary whitespace-nowrap">{{ formatWhen(toMs(transfer.timestamp)) }}</td>
             </tr>
           </tbody>
           <tbody v-else>
@@ -96,7 +118,8 @@ import { useI18n } from "vue-i18n";
 import { useCursorList } from "@/composables/useCursorList";
 import { tokenService } from "@/services/neox";
 import { getNeoxNet } from "@/utils/neoxEnv";
-import { formatUnits, timeAgo } from "@/utils/neoxFormat";
+import { formatUnits } from "@/utils/neoxFormat";
+import { useAgeMode } from "@/composables/useAgeMode";
 import XHashLink from "@/components/common/XHashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -114,6 +137,9 @@ const tf = (key, fallback) => {
   const value = t(key);
   return value === key ? fallback : value;
 };
+
+// Shared etherscan-style Age ⇄ UTC toggle (one ref flips every table).
+const { ageMode, toggleAgeMode, formatWhen } = useAgeMode();
 
 const { items, loading, loadingMore, error, hasMore, loadMore, refresh } = useCursorList((cursor, ctx) =>
   tokenService.getTransfers(props.hash, { net: getNeoxNet(), cursor, signal: ctx.signal })

@@ -144,7 +144,7 @@
                   <span class="text-mid">{{ formatLicense(contract.license_type) }}</span>
                 </td>
                 <td class="table-cell-secondary">
-                  {{ contract.verified_at ? timeAgo(Date.parse(contract.verified_at)) : "—" }}
+                  {{ contract.verified_at ? formatWhen(Date.parse(contract.verified_at)) : "—" }}
                 </td>
                 <td class="table-cell-secondary-right hidden lg:table-cell">
                   {{ contract.coin_balance != null ? `${formatGas(contract.coin_balance)} GAS` : "—" }}
@@ -174,7 +174,8 @@ import { useDebounceFn } from "@/composables/useVueUtils";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getNeoxNet } from "@/utils/neoxEnv";
 import { contractService } from "@/services/neox";
-import { formatGas, formatInt, timeAgo } from "@/utils/neoxFormat";
+import { formatGas, formatInt } from "@/utils/neoxFormat";
+import { useAgeMode } from "@/composables/useAgeMode";
 import PageHero from "@/components/common/PageHero.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -189,6 +190,10 @@ const tf = (key, fallback) => {
   const value = t(key);
   return value === key ? fallback : value;
 };
+
+// Shared etherscan-style Age ⇄ UTC toggle: the Verified column follows the
+// app-wide mode like every other timestamp column.
+const { formatWhen } = useAgeMode();
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 400;
