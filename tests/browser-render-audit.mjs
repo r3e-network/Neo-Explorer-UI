@@ -91,6 +91,7 @@ const ROUTES = [
   ["nftDetail", (d) => `/nft-info/${d.nep11ContractHash}/${encodeURIComponent(d.nftOwnerAddress)}/${encodeURIComponent(d.nftTokenId)}`],
   ["gasTracker", () => "/gas-tracker"],
   ["networkStatus", () => "/network-status"],
+  ["consensusStatus", () => "/consensus-status"],
   ["advancedSearch", () => "/advanced-search"],
   ["governance", () => "/governance"],
   ["chat", () => "/chat", true],
@@ -100,6 +101,7 @@ const ROUTES = [
   ["xBlocks", () => "/x/blocks"],
   ["xBlockDetail", (d) => `/x/block-info/${encodeURIComponent(String(d.neoxBlockIndex))}`],
   ["xTransactions", () => "/x/transactions"],
+  ["xAntiMev", () => "/x/anti-mev"],
   ["xTxDetail", (d) => `/x/tx/${encodeURIComponent(d.neoxTxHash)}`],
   ["xAddress", (d) => `/x/address/${encodeURIComponent(d.neoxAddress)}`],
   ["xTokens", () => "/x/tokens"],
@@ -107,6 +109,7 @@ const ROUTES = [
   ["xContracts", () => "/x/contracts"],
   ["xAccounts", () => "/x/accounts"],
   ["xCharts", () => "/x/charts"],
+  ["xLabels", () => "/x/labels"],
   ["notFound", () => "/__browser_audit_missing_route__"],
 ].map(([name, makePath, allowAuthFailures = false]) => ({ name, makePath, allowAuthFailures }));
 

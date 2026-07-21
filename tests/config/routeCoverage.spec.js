@@ -3,9 +3,16 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const ROUTER_SOURCE = readFileSync(path.join(process.cwd(), "src/router/index.js"), "utf8");
+const BROWSER_AUDIT_SOURCE = readFileSync(path.join(process.cwd(), "tests/browser-render-audit.mjs"), "utf8");
 
 function namedRoutesFromRouterSource(source) {
   return [...source.matchAll(/\bname:\s*"([^"]+)"/g)].map((match) => match[1]);
+}
+
+function namedRoutesFromBrowserAudit(source) {
+  const routeTable = source.match(/const ROUTES = \[([\s\S]*?)\n\]\.map/);
+  if (!routeTable) return [];
+  return [...routeTable[1].matchAll(/\["([^"]+)",/g)].map((match) => match[1]);
 }
 
 // This manifest is a drift guard for the full Explorer page audit. Each named
@@ -88,5 +95,13 @@ describe("Explorer route audit coverage", () => {
     const stale = Object.keys(ROUTE_AUDIT_EVIDENCE).filter((name) => !routeNames.has(name));
 
     expect(stale).toEqual([]);
+  });
+
+  it("renders every named route in the production browser audit", () => {
+    const routeNames = namedRoutesFromRouterSource(ROUTER_SOURCE);
+    const browserRouteNames = new Set(namedRoutesFromBrowserAudit(BROWSER_AUDIT_SOURCE));
+    const missing = routeNames.filter((name) => !browserRouteNames.has(name));
+
+    expect(missing).toEqual([]);
   });
 });
