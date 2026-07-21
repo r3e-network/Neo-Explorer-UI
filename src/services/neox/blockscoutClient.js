@@ -20,8 +20,12 @@ function buildUrl(net, path, params) {
   const cleanPath = String(path || "").replace(/^\/+/, "");
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params || {})) {
-    if (value === undefined || value === null || value === "") continue;
-    search.append(key, String(value));
+    if (value === undefined || value === "") continue;
+    // Blockscout cursors must be echoed back VERBATIM, including null members:
+    // /addresses returns next_page_params with transactions_count: null, and
+    // dropping that key makes the upstream silently serve page one again.
+    // Blockscout's own frontend sends the literal string "null".
+    search.append(key, value === null ? "null" : String(value));
   }
   const qs = search.toString();
   return `${prefix}/${cleanPath}${qs ? `?${qs}` : ""}`;

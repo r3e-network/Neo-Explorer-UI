@@ -73,10 +73,10 @@ function parseDevCacheableRpcRequest(url) {
 }
 
 function createDevNeoxRpcGetPlugin(targets) {
-  return {
-    name: "dev-neox-rpc-cache",
-    configureServer(server) {
-      server.middlewares.use("/neox-rpc", async (req, res, next) => {
+  // Shared between dev and preview: `vite preview` serves the production
+  // bundle whose rpcService issues the same cacheable GETs, and the plain
+  // passthrough proxy cannot answer them (the node only speaks POST).
+  const middleware = async (req, res, next) => {
         if (req.method !== "GET") {
           next();
           return;
@@ -139,7 +139,15 @@ function createDevNeoxRpcGetPlugin(targets) {
           res.setHeader("Cache-Control", "no-store");
           res.end(JSON.stringify({ error: error.message || "Neo X RPC unavailable" }));
         }
-      });
+  };
+
+  return {
+    name: "dev-neox-rpc-cache",
+    configureServer(server) {
+      server.middlewares.use("/neox-rpc", middleware);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use("/neox-rpc", middleware);
     },
   };
 }
