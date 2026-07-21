@@ -62,7 +62,29 @@
       <!-- Transport failure, not a 404 — the not-found state renders separately. -->
       <ErrorState v-else-if="error" :title="tf('neoX.transactionsErrorTitle', 'Unable to load transactions')" :message="error" @retry="load" />
 
-      <EmptyState v-else-if="notFound" :message="tf('neoX.notFound', 'Transaction not found.')" icon="tx" />
+      <!-- Pending hash: not indexed yet — bounded auto-poll before declaring not found -->
+      <div v-else-if="polling" class="etherscan-card p-6 text-center" role="status">
+        <svg class="mx-auto h-8 w-8 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        <p class="text-high mt-3 text-base font-semibold">
+          {{ tf("neoX.txPendingTitle", "Transaction not found yet") }}
+        </p>
+        <p class="text-mid mt-1 text-sm">
+          {{ tf("neoX.txPendingBody", "It may still be propagating or pending. Retrying automatically…") }}
+        </p>
+        <p class="text-low mt-2 text-xs">{{ pollAttempt }}/{{ MAX_POLL_ATTEMPTS }}</p>
+      </div>
+
+      <div v-else-if="notFound">
+        <EmptyState :message="tf('neoX.notFound', 'Transaction not found.')" icon="tx" />
+        <div v-if="pollExhausted" class="pb-6 text-center">
+          <button type="button" class="btn-outline gap-1.5 px-3 py-1.5 text-xs" @click="load">
+            {{ tf("neoX.retry", "Retry") }}
+          </button>
+        </div>
+      </div>
 
       <!-- Tabbed content -->
       <template v-else-if="tx">
@@ -400,7 +422,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useNetworkChange } from "@/composables/useNetworkChange";
@@ -432,13 +454,26 @@ const tf = (key, fallback) => {
   return value === key ? fallback : value;
 };
 
+// Etherscan-style pending-hash handling: a well-formed hash that resolves to
+// "not found" (no transport error) is auto-polled for a bounded window before
+// the static not-found state takes over.
+const POLL_INTERVAL_MS = 5000;
+const MAX_POLL_ATTEMPTS = 12;
+
 const tx = ref(null);
 const loading = ref(false);
 const error = ref("");
 const notFound = ref(false);
+const polling = ref(false);
+const pollAttempt = ref(0);
 const activeTab = ref("overview");
 const logsCount = ref(null);
 let reqId = 0;
+let pollTimer = null;
+
+const pollExhausted = computed(() => pollAttempt.value >= MAX_POLL_ATTEMPTS);
+
+const isWellFormedTxHash = (hash) => /^0x[0-9a-fA-F]{64}$/.test(String(hash || ""));
 
 const txStatus = computed(() => {
   if (!tx.value) return "pending";
@@ -510,10 +545,47 @@ const transferAmount = (transfer) => {
   return "—";
 };
 
+function stopPolling() {
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+  polling.value = false;
+}
+
+function scheduleNextPoll(hash, current) {
+  pollAttempt.value += 1;
+  pollTimer = setTimeout(async () => {
+    pollTimer = null;
+    if (current !== reqId) return;
+    try {
+      const found = await transactionService.getByHash(hash, { net: getNeoxNet() });
+      if (current !== reqId) return;
+      if (found) {
+        tx.value = found;
+        polling.value = false;
+        return;
+      }
+    } catch (_err) {
+      // Transient transport failure mid-poll: keep retrying until the budget
+      // runs out — the hash may still land in the next attempts.
+      if (current !== reqId) return;
+    }
+    if (pollAttempt.value >= MAX_POLL_ATTEMPTS) {
+      polling.value = false;
+      notFound.value = true;
+      return;
+    }
+    scheduleNextPoll(hash, current);
+  }, POLL_INTERVAL_MS);
+}
+
 async function load() {
   const hash = route.params.txhash;
   if (!hash) return;
   const current = ++reqId;
+  stopPolling();
+  pollAttempt.value = 0;
   tx.value = null;
   loading.value = true;
   error.value = "";
@@ -526,7 +598,13 @@ async function load() {
     if (current !== reqId) return;
     tx.value = found;
     if (!found) {
-      notFound.value = true;
+      // Malformed hashes can never resolve — skip polling entirely.
+      if (isWellFormedTxHash(hash)) {
+        polling.value = true;
+        scheduleNextPoll(hash, current);
+      } else {
+        notFound.value = true;
+      }
     }
   } catch (_err) {
     if (current === reqId) {
@@ -541,4 +619,5 @@ async function load() {
 onMounted(load);
 watch(() => route.params.txhash, load);
 useNetworkChange(load);
+onBeforeUnmount(stopPolling);
 </script>

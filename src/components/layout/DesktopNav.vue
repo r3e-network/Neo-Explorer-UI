@@ -123,6 +123,7 @@
         <router-link to="/x/contracts" class="dropdown-link">{{ $t("nav.contracts") }}</router-link>
         <router-link to="/x/accounts" class="dropdown-link">{{ $t("nav.accounts") }}</router-link>
         <router-link to="/x/charts" class="dropdown-link">{{ $t("nav.chartsStats") }}</router-link>
+        <router-link to="/x/labels" class="dropdown-link">{{ $t("nav.labels") }}</router-link>
       </div>
     </li>
     <li

@@ -160,6 +160,7 @@
             <router-link to="/x/contracts" class="mobile-link" @click="closeMobile">{{ $t("nav.contracts") }}</router-link>
             <router-link to="/x/accounts" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
             <router-link to="/x/charts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
+            <router-link to="/x/labels" class="mobile-link" @click="closeMobile">{{ $t("nav.labels") }}</router-link>
             <router-link to="/api-docs" class="mobile-link" @click="closeMobile">{{ $t("nav.apiDocs") }}</router-link>
           </div>
           <div v-else class="grid grid-cols-2 gap-3 text-sm">

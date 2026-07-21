@@ -72,6 +72,7 @@ const ROUTE_AUDIT_EVIDENCE = Object.freeze({
   xContracts: ["src/views/X/XContracts.vue source audit"],
   xAccounts: ["src/views/X/XAccounts.vue source audit"],
   xCharts: ["src/views/X/XCharts.vue source audit"],
+  xLabels: ["src/views/X/XLabels.vue source audit"],
 });
 
 describe("Explorer route audit coverage", () => {

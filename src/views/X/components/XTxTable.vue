@@ -10,7 +10,25 @@
           <th v-if="!dense" scope="col" class="table-header-cell hidden md:table-cell">
             {{ tf("neoX.block", "Block") }}
           </th>
-          <th scope="col" class="table-header-cell">{{ tf("neoX.age", "Age") }}</th>
+          <th scope="col" class="table-header-cell">
+            <button
+              type="button"
+              class="cursor-pointer select-none hover:text-primary-500"
+              :aria-pressed="ageMode === 'utc'"
+              :title="tf('neoX.toggleAgeUtc', 'Click to toggle Age / UTC')"
+              @click="toggleAgeMode"
+            >
+              {{ ageMode === "utc" ? tf("neoX.dateTimeUtc", "Date Time (UTC)") : tf("neoX.age", "Age") }}
+              <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                />
+              </svg>
+            </button>
+          </th>
           <th v-if="!dense" scope="col" class="table-header-cell">{{ tf("neoX.fromTo", "From → To") }}</th>
           <th scope="col" class="table-header-cell">{{ tf("neoX.valueGas", "Value (GAS)") }}</th>
           <th v-if="!dense" scope="col" class="table-header-cell hidden lg:table-cell">
@@ -51,7 +69,7 @@
             >{{ formatInt(tx.blockIndex) }}</router-link>
             <span v-else class="text-mid">-</span>
           </td>
-          <td class="table-cell-secondary whitespace-nowrap">{{ timeAgo(tx.timestampMs) }}</td>
+          <td class="table-cell-secondary whitespace-nowrap">{{ formatWhen(tx.timestampMs) }}</td>
           <td v-if="!dense" class="table-cell">
             <div class="flex items-center gap-1.5">
               <XHashLink v-if="tx.sender" type="address" :hash="tx.sender" :name="tx.fromInfo?.name || ''" />
@@ -102,7 +120,8 @@ import { useI18n } from "vue-i18n";
 import XHashLink from "@/components/common/XHashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import XAntiMevBadge from "./XAntiMevBadge.vue";
-import { formatGas, formatGwei, formatInt, timeAgo } from "@/utils/neoxFormat";
+import { formatGas, formatGwei, formatInt } from "@/utils/neoxFormat";
+import { useAgeMode } from "@/composables/useAgeMode";
 
 defineProps({
   transactions: { type: Array, default: () => [] },
@@ -117,6 +136,9 @@ const tf = (key, fallback) => {
   const value = translate(key);
   return value === key ? fallback : value;
 };
+
+// Shared etherscan-style Age ⇄ UTC toggle (one ref flips every table).
+const { ageMode, toggleAgeMode, formatWhen } = useAgeMode();
 
 const isFailed = (tx) => tx.status === "error";
 

@@ -132,4 +132,23 @@ export function parseCalldata(hex) {
   return { selector, words, remainder: rest ? `0x${rest}` : null, byteLength, error: null };
 }
 
+/**
+ * Decode transaction input hex as UTF-8 text (etherscan "View Input As →
+ * UTF-8"). The FULL input is decoded verbatim — selector included — and
+ * invalid byte sequences become U+FFFD replacement characters, so the view
+ * is lossy by design.
+ *
+ * @param {string} hex - Input bytes ("0x..." or bare hex).
+ * @returns {string} Decoded text, or "" for empty/invalid hex.
+ */
+export function hexToUtf8(hex) {
+  const clean = strip0x(hex);
+  if (!clean || !isHex(clean) || clean.length % 2 !== 0) return "";
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+}
+
 export default disassemble;

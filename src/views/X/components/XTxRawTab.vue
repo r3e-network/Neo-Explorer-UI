@@ -78,6 +78,27 @@
       </div>
     </template>
 
+    <!-- UTF-8 (etherscan "View Input As → UTF-8": full input decoded verbatim, selector included) -->
+    <template v-else-if="mode === 'utf8'">
+      <EmptyState v-if="byteSize === 0" :message="tf('neoX.emptyInput', 'No input data')" />
+      <div v-else>
+        <div class="panel-muted relative rounded-lg p-4">
+          <div class="absolute right-2 top-2">
+            <CopyButton :text="utf8Text" size="sm" />
+          </div>
+          <div class="block whitespace-pre-wrap break-all pr-8 font-hash text-xs">{{ utf8Text }}</div>
+        </div>
+        <p class="mt-2 text-xs text-low">
+          {{
+            tf(
+              "neoX.utf8Note",
+              "Lossy view: bytes that are not valid UTF-8 are shown as replacement characters."
+            )
+          }}
+        </p>
+      </div>
+    </template>
+
     <!-- Opcodes -->
     <template v-else>
       <EmptyState v-if="byteSize === 0" :message="tf('neoX.emptyInput', 'No input data')" />
@@ -122,7 +143,7 @@ import { useI18n } from "vue-i18n";
 import CopyButton from "@/components/common/CopyButton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatInt } from "@/utils/neoxFormat";
-import { disassemble, parseCalldata } from "@/utils/evmDisasm";
+import { disassemble, parseCalldata, hexToUtf8 } from "@/utils/evmDisasm";
 
 const props = defineProps({
   rawInput: { type: String, default: "" },
@@ -145,6 +166,7 @@ const modes = computed(() => [
   { key: "raw", label: tf("neoX.rawMode", "Raw") },
   { key: "calldata", label: tf("neoX.calldataMode", "Calldata") },
   { key: "opcodes", label: tf("neoX.opcodesMode", "Opcodes") },
+  { key: "utf8", label: tf("neoX.utf8Mode", "UTF-8") },
 ]);
 
 const byteSize = computed(() => {
@@ -153,6 +175,8 @@ const byteSize = computed(() => {
 });
 
 const calldata = computed(() => parseCalldata(props.rawInput));
+
+const utf8Text = computed(() => hexToUtf8(props.rawInput));
 
 const disasm = computed(() => disassemble(props.rawInput, { maxInstructions: 4096 }));
 

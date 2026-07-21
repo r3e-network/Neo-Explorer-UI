@@ -72,6 +72,38 @@
             <div class="detail-metadata mt-1">
               <span class="detail-chip min-w-0 max-w-full break-all font-hash text-[11px] sm:text-xs">{{ addr }}</span>
               <CopyButton :text="addr" />
+              <button
+                class="btn-outline px-2 py-1 text-xs"
+                :aria-expanded="showQr"
+                :aria-label="tf('neoX.qrToggleAria', 'Toggle address QR code')"
+                :title="tf('neoX.qrShow', 'Show QR code')"
+                @click="showQr = !showQr"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
+                  />
+                </svg>
+                QR
+              </button>
+            </div>
+
+            <!-- QR code -->
+            <div
+              v-if="showQr"
+              class="surface-panel mt-3 inline-block rounded-xl border border-line-soft bg-white p-3 shadow-sm"
+            >
+              <div class="flex flex-col items-center gap-3">
+                <div class="rounded-lg bg-white p-2">
+                  <QrcodeVue :value="addr" :size="150" level="H" />
+                </div>
+                <p class="text-mid max-w-[200px] break-all text-center font-hash text-[10px]">
+                  {{ addr }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -255,6 +287,7 @@ const XAddrLogsTab = defineAsyncComponent(() => import("./components/XAddrLogsTa
 const XAddrHoldingsTab = defineAsyncComponent(() => import("./components/XAddrHoldingsTab.vue"));
 const XAddrHistoryTab = defineAsyncComponent(() => import("./components/XAddrHistoryTab.vue"));
 const XContractTab = defineAsyncComponent(() => import("./components/XContractTab.vue"));
+const QrcodeVue = defineAsyncComponent(() => import("qrcode.vue"));
 
 const route = useRoute();
 const { t } = useI18n();
@@ -269,6 +302,7 @@ const loading = ref(false);
 const error = ref(false);
 const notFound = ref(false);
 const activeTab = ref("transactions");
+const showQr = ref(false);
 let reqId = 0;
 
 const addr = computed(() => String(route.params.addr || ""));
@@ -349,6 +383,7 @@ watch(
     account.value = null;
     counters.value = null;
     activeTab.value = "transactions";
+    showQr.value = false;
     loadOverview();
   }
 );

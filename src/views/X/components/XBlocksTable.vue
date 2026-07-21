@@ -4,7 +4,25 @@
       <thead class="table-head">
         <tr>
           <th scope="col" class="table-header-cell">{{ tf("neoX.block", "Block") }}</th>
-          <th scope="col" class="table-header-cell">{{ tf("neoX.age", "Age") }}</th>
+          <th scope="col" class="table-header-cell">
+            <button
+              type="button"
+              class="cursor-pointer select-none hover:text-primary-500"
+              :aria-pressed="ageMode === 'utc'"
+              :title="tf('neoX.toggleAgeUtc', 'Click to toggle Age / UTC')"
+              @click="toggleAgeMode"
+            >
+              {{ ageMode === "utc" ? tf("neoX.dateTimeUtc", "Date Time (UTC)") : tf("neoX.age", "Age") }}
+              <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                />
+              </svg>
+            </button>
+          </th>
           <th scope="col" class="table-header-cell">{{ tf("neoX.txnCount", "Txn") }}</th>
           <template v-if="!dense">
             <th scope="col" class="table-header-cell">{{ tf("neoX.gasUsed", "Gas Used") }}</th>
@@ -22,7 +40,7 @@
               #{{ formatInt(block.index) }}
             </router-link>
           </td>
-          <td class="table-cell-secondary whitespace-nowrap">{{ timeAgo(block.timestampMs) }}</td>
+          <td class="table-cell-secondary whitespace-nowrap">{{ formatWhen(block.timestampMs) }}</td>
           <td class="table-cell">
             <span class="badge-soft">{{ formatInt(block.txCount) }}</span>
           </td>
@@ -79,7 +97,8 @@
 import { useI18n } from "vue-i18n";
 import XHashLink from "@/components/common/XHashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
-import { formatInt, formatGas, formatGwei, timeAgo } from "@/utils/neoxFormat";
+import { formatInt, formatGas, formatGwei } from "@/utils/neoxFormat";
+import { useAgeMode } from "@/composables/useAgeMode";
 
 defineProps({
   blocks: { type: Array, default: () => [] },
@@ -94,6 +113,9 @@ const tf = (key, fallback) => {
   const value = translate(key);
   return value === key ? fallback : value;
 };
+
+// Shared etherscan-style Age ⇄ UTC toggle (one ref flips every table).
+const { ageMode, toggleAgeMode, formatWhen } = useAgeMode();
 
 function gasPct(block) {
   const pct = Number(block.gasUsedPercentage ?? block.raw?.gas_used_percentage);

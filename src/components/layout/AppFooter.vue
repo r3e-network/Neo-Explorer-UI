@@ -93,7 +93,7 @@
         class="soft-divider text-mid mt-8 flex flex-col items-start justify-between gap-3 border-t pt-5 text-xs sm:flex-row sm:items-center"
       >
         <p>&copy; {{ currentYear }} Neo Explorer</p>
-        <p class="hidden sm:block">{{ $t("footer.poweredBy") }} <strong class="text-neo-green">neo3fura</strong></p>
+        <p class="hidden sm:block">{{ $t("footer.poweredBy") }} <strong class="text-neo-green">{{ dataBackendLabel }}</strong></p>
         <button
           class="text-mid font-medium transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500"
           :aria-label="$t('aria.backToTop')"
@@ -113,6 +113,10 @@ import { useRoute } from "vue-router";
 
 const route = useRoute();
 const { t } = useI18n();
+const tf = (key, fallback) => {
+  const value = t(key);
+  return value === key ? fallback : value;
+};
 
 const isNeoxRoute = computed(() => String(route.path || "").startsWith("/x"));
 const chainLabel = computed(() => (isNeoxRoute.value ? "Neo X" : "Neo N3"));
@@ -121,11 +125,13 @@ const brandLogoAlt = computed(() => (isNeoxRoute.value ? "Neo X logo" : "Neo log
 const brandLabel = computed(() => (isNeoxRoute.value ? "Neo X Explorer" : "Neo Explorer"));
 const footerDescription = computed(() => {
   if (!isNeoxRoute.value) return t("footer.description");
-  const translated = t("neoX.footerDescription");
-  return translated === "neoX.footerDescription"
-    ? "Explore Neo X blocks, transactions, accounts, tokens, contracts, and network activity."
-    : translated;
+  return tf(
+    "neoX.footerDescription",
+    "A Block Explorer and Analytics Platform for Neo X, the EVM-compatible sidechain secured by dBFT consensus."
+  );
 });
+// The bottom-bar credit names the data backend, which differs per chain.
+const dataBackendLabel = computed(() => (isNeoxRoute.value ? "Blockscout" : "neo3fura"));
 
 const blockchainLinks = computed(() =>
   isNeoxRoute.value
@@ -148,10 +154,9 @@ const blockchainLinks = computed(() =>
 const resourceLinks = computed(() =>
   isNeoxRoute.value
     ? [
-        { to: "/x", label: t("nav.home") },
-        { to: "/x/anti-mev", label: "Anti-MEV Center" },
         { to: "/x/charts", label: t("nav.chartsStats") },
-        { to: "/api-docs", label: t("nav.apiDocs") },
+        { to: "/x/anti-mev", label: "Anti-MEV Center" },
+        { to: "/x/labels", label: t("nav.labels") },
       ]
     : [
         { to: "/echarts", label: t("nav.chartsStats") },

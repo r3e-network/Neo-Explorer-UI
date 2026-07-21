@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { disassemble, parseCalldata } from "../../src/utils/evmDisasm.js";
+import { disassemble, parseCalldata, hexToUtf8 } from "../../src/utils/evmDisasm.js";
 
 describe("evmDisasm disassemble", () => {
   it("disassembles a classic Solidity prologue", () => {
@@ -83,5 +83,38 @@ describe("evmDisasm parseCalldata", () => {
     expect(parseCalldata("0x1234").selector).toBeNull();
     expect(parseCalldata("").byteLength).toBe(0);
     expect(parseCalldata("0xoops").error).toBe("Invalid hex input");
+  });
+});
+
+describe("evmDisasm hexToUtf8", () => {
+  it("round-trips plain ASCII", () => {
+    const hex = `0x${Array.from("hello world", (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join("")}`;
+    expect(hexToUtf8(hex)).toBe("hello world");
+  });
+
+  it("decodes multi-byte CJK sequences", () => {
+    // "你好" = e4 bd a0 e5 a5 bd in UTF-8.
+    expect(hexToUtf8("0xe4bda0e5a5bd")).toBe("你好");
+    // Bare hex (no 0x prefix) decodes identically.
+    expect(hexToUtf8("e4bda0e5a5bd")).toBe("你好");
+  });
+
+  it("replaces invalid byte sequences with U+FFFD instead of throwing", () => {
+    // 0xff is never valid in UTF-8; a lone continuation byte 0x80 is invalid too.
+    expect(hexToUtf8("0xff")).toBe("�");
+    expect(hexToUtf8("0x41ff42")).toBe("A�B");
+    expect(hexToUtf8("0x80")).toBe("�");
+    // Truncated multi-byte lead (e4 bd expects one more byte).
+    expect(hexToUtf8("0xe4bd")).toBe("�");
+  });
+
+  it("returns empty string for empty, odd-length, and non-hex input", () => {
+    expect(hexToUtf8("")).toBe("");
+    expect(hexToUtf8("0x")).toBe("");
+    expect(hexToUtf8(null)).toBe("");
+    expect(hexToUtf8(undefined)).toBe("");
+    expect(hexToUtf8("0x123")).toBe("");
+    expect(hexToUtf8("0xzz")).toBe("");
+    expect(hexToUtf8("not hex at all")).toBe("");
   });
 });

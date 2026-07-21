@@ -52,6 +52,26 @@
             </template>
             <template v-else>{{ tf("neoX.latestTransactions", "Latest Transactions") }}</template>
           </p>
+          <button
+            type="button"
+            class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
+            :disabled="exporting || items.length === 0"
+            :title="tf('neoX.exportCsvTitle', 'Export the loaded rows to CSV')"
+            @click="exportData"
+          >
+            <svg v-if="!exporting" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8" />
+            </svg>
+            {{ tf("neoX.exportCsv", "Export CSV") }}
+          </button>
         </div>
 
         <!-- Loading Skeleton -->
@@ -98,6 +118,7 @@ import { getNeoxNet } from "@/utils/neoxEnv";
 import { NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { transactionService, statsService } from "@/services/neox";
 import { formatInt } from "@/utils/neoxFormat";
+import { exportXTransactionsCsv } from "@/utils/neoxExport";
 import PageHero from "@/components/common/PageHero.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
@@ -150,6 +171,21 @@ async function loadStats() {
 const { items, loading, loadingMore, error, hasMore, loadMore, refresh } = useCursorList((cursor, ctx) =>
   transactionService.getList({ net: getNeoxNet(), cursor, signal: ctx.signal })
 );
+
+// --- CSV export of the currently loaded rows ---
+const exporting = ref(false);
+
+function exportData() {
+  if (exporting.value || items.value.length === 0) return;
+  exporting.value = true;
+  try {
+    const first = items.value[0]?.blockIndex;
+    const last = items.value[items.value.length - 1]?.blockIndex;
+    exportXTransactionsCsv(items.value, `neox-transactions-${first}-${last}`);
+  } finally {
+    exporting.value = false;
+  }
+}
 
 onMounted(() => {
   loadStats();

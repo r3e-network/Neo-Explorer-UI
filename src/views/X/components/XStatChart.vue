@@ -5,24 +5,48 @@
         <h2 class="text-high text-base font-semibold">{{ title }}</h2>
         <p v-if="subtitle" class="text-mid mt-1 text-xs">{{ subtitle }}</p>
       </div>
-      <div v-if="points.length > RANGE_90" class="flex items-center gap-1">
+      <div v-if="points.length > 0" class="flex items-center gap-1">
+        <template v-if="points.length > RANGE_90">
+          <button
+            type="button"
+            class="tab-btn"
+            :class="range === '90d' ? 'tab-btn-active' : 'tab-btn-inactive'"
+            :aria-pressed="range === '90d'"
+            @click="range = '90d'"
+          >
+            {{ tf("neoX.chartRange90d", "90d") }}
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            :class="range === 'all' ? 'tab-btn-active' : 'tab-btn-inactive'"
+            :aria-pressed="range === 'all'"
+            @click="range = 'all'"
+          >
+            {{ tf("neoX.chartRangeAll", "All") }}
+          </button>
+        </template>
         <button
           type="button"
-          class="tab-btn"
-          :class="range === '90d' ? 'tab-btn-active' : 'tab-btn-inactive'"
-          :aria-pressed="range === '90d'"
-          @click="range = '90d'"
+          class="btn-outline gap-1 px-2 py-1 text-[10px]"
+          :aria-label="tf('neoX.downloadPng', 'Download PNG')"
+          @click="downloadPng"
         >
-          {{ tf("neoX.chartRange90d", "90d") }}
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" />
+          </svg>
+          PNG
         </button>
         <button
           type="button"
-          class="tab-btn"
-          :class="range === 'all' ? 'tab-btn-active' : 'tab-btn-inactive'"
-          :aria-pressed="range === 'all'"
-          @click="range = 'all'"
+          class="btn-outline gap-1 px-2 py-1 text-[10px]"
+          :aria-label="tf('neoX.downloadCsv', 'Download CSV')"
+          @click="downloadCsv"
         >
-          {{ tf("neoX.chartRangeAll", "All") }}
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" />
+          </svg>
+          CSV
         </button>
       </div>
     </div>
@@ -58,6 +82,7 @@ import { statsService } from "@/services/neox";
 import { getNeoxNet } from "@/utils/neoxEnv";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getChartColors, baseTooltipConfig } from "@/utils/chartHelpers";
+import { CSV_BOM, escapeCsvValue, downloadBlob } from "@/utils/dataExport";
 
 const props = defineProps({
   lineId: { type: String, required: true },
@@ -227,6 +252,35 @@ async function load() {
   } finally {
     if (token === loadToken) loading.value = false;
   }
+}
+
+function downloadPng() {
+  // The canvas only exists in the data branch and the chart draws async —
+  // bail quietly until there is a rendered chart to snapshot.
+  if (!chartCanvas.value || !chartInstance) return;
+  const link = document.createElement("a");
+  link.href = chartCanvas.value.toDataURL("image/png");
+  link.download = `${props.lineId}.png`;
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function buildChartCsv(rows) {
+  const lines = ["date,value"];
+  for (const point of rows) {
+    lines.push(`${escapeCsvValue(point.date)},${escapeCsvValue(point.value)}`);
+  }
+  // \r\n is the canonical CSV line ending; some Excel locales misparse \n.
+  return CSV_BOM + lines.join("\r\n");
+}
+
+function downloadCsv() {
+  const rows = visiblePoints.value;
+  if (rows.length === 0) return;
+  const blob = new Blob([buildChartCsv(rows)], { type: "text/csv;charset=utf-8;" });
+  downloadBlob(blob, `${props.lineId}.csv`);
 }
 
 watch(visiblePoints, () => {
