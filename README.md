@@ -139,8 +139,8 @@ The v1 server-side verification flow expects a verifiable Neo public key from th
 
 ### Prerequisites
 
-- Node.js 20+ (Node 24 LTS recommended)
-- npm (lockfile included)
+- Node.js 22.x (application, build, and serverless runtime)
+- Bun 1.3.14 (dependency installation only)
 
 ### Local Development
 
@@ -153,7 +153,7 @@ cd Neo-Explorer-UI
 cp .env.example .env
 
 # Install dependencies
-npm install
+bun install --frozen-lockfile
 
 # Start development server
 npm run dev
@@ -179,7 +179,7 @@ This repository is Vercel-ready for SPA routing, with an in-app network switcher
 
 ```bash
 # Install dependencies
-npm install
+bun install --frozen-lockfile
 
 # Deploy (first time links project)
 npx vercel
@@ -187,6 +187,11 @@ npx vercel
 # Deploy production
 npx vercel --prod
 ```
+
+Vercel and CI use Bun only to install the dependency tree. Application scripts and
+serverless functions continue to run on Node.js 22. Keep both `bun.lock` and
+`package-lock.json` synchronized so npm remains a tested rollback path and audit
+source.
 
 Optional build-time environment variable:
 

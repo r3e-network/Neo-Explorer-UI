@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
+  "installCommand": "bun install --frozen-lockfile",
   "devCommand": "npm run dev -- --host 127.0.0.1 --port $PORT",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
