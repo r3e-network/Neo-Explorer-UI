@@ -90,6 +90,87 @@ describe("Neo X REST proxy", () => {
     );
   });
 
+  it("forwards the full ERC-1155 batch cursor emitted on batched token-transfer pages", async () => {
+    globalThis.fetch.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+
+    const handler = loadHandler("../../api/neox.js");
+    const res = createResponse();
+    await handler(
+      createRequest({
+        query: {
+          net: "mainnet",
+          path: "tokens/0xtoken/transfers",
+          block_number: "25574433",
+          index: "256",
+          batch_log_index: "3",
+          batch_block_hash: "0xblockhash",
+          batch_transaction_hash: "0xtxhash",
+          index_in_batch: "7",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://xexplorer.neo.org/api/v2/tokens/0xtoken/transfers?block_number=25574433&index=256&batch_log_index=3&batch_block_hash=0xblockhash&batch_transaction_hash=0xtxhash&index_in_batch=7",
+      expect.anything()
+    );
+  });
+
+  it("forwards the address-transaction cursor (inserted_at + fee) so account 'load more' advances", async () => {
+    globalThis.fetch.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+
+    const handler = loadHandler("../../api/neox.js");
+    const res = createResponse();
+    await handler(
+      createRequest({
+        query: {
+          net: "mainnet",
+          path: "addresses/0xabc/transactions",
+          block_number: "7042931",
+          index: "0",
+          hash: "0xcursorhash",
+          value: "0",
+          inserted_at: "2026-07-10T03:31:13.914135Z",
+          fee: "5110160000000000",
+          items_count: "50",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://xexplorer.neo.org/api/v2/addresses/0xabc/transactions?block_number=7042931&index=0&hash=0xcursorhash&value=0&inserted_at=2026-07-10T03%3A31%3A13.914135Z&fee=5110160000000000&items_count=50",
+      expect.anything()
+    );
+  });
+
+  it("forwards the state-changes cursor (state_changes offset) so state-changes 'load more' advances", async () => {
+    globalThis.fetch.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+
+    const handler = loadHandler("../../api/neox.js");
+    const res = createResponse();
+    await handler(
+      createRequest({
+        query: {
+          net: "mainnet",
+          path: "transactions/0xtx/state-changes",
+          state_changes: "50",
+          items_count: "50",
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://xexplorer.neo.org/api/v2/transactions/0xtx/state-changes?state_changes=50&items_count=50",
+      expect.anything()
+    );
+  });
+
   it("preserves an upstream not-found response as a 404 empty-state signal", async () => {
     globalThis.fetch.mockResolvedValueOnce(new Response("{}", { status: 404 }));
 

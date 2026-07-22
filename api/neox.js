@@ -64,11 +64,26 @@ const ALLOWED_QUERY_KEYS = new Set([
   "token_id",
   "log_index",
   "transaction_index",
+  // ERC-1155 batched token-transfer cursor: Blockscout emits these four keys
+  // together in next_page_params (see token_transfers_next_page_params). All
+  // must be allowlisted or 'load more' 400s once a batch straddles a page edge.
   "batch_log_index",
+  "batch_block_hash",
+  "batch_transaction_hash",
+  "index_in_batch",
   "id",
   "address_hash",
   "unique_token",
   "value",
+  // Address-transaction list cursor: Blockscout's /addresses/{h}/transactions
+  // next_page_params carries inserted_at + fee alongside the base keys. Both
+  // must be allowlisted or 'load more' 400s once an address exceeds one page.
+  "inserted_at",
+  "fee",
+  // Transaction state-changes cursor: Blockscout's define_state_changes_paging_params
+  // emits {state_changes, items_count}. items_count is above; state_changes is the
+  // offset key, needed so state-changes 'load more' survives past 50 changes.
+  "state_changes",
 ]);
 
 function hasValidQuery(query) {

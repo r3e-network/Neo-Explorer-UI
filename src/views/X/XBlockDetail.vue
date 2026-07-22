@@ -327,21 +327,26 @@ async function load() {
   try {
     const net = getNeoxNet();
     activeNet.value = net;
-    const found = await blockService.getByParam(param, { net });
+    // The header and tx-list requests are independent (both keyed only on the
+    // route param); fire them together so the tx list does not wait on the
+    // header fetch plus its consensus RPC hop.
+    const [headerResult, txResult] = await Promise.allSettled([
+      blockService.getByParam(param, { net }),
+      blockService.getBlockTransactions(param, { net }),
+    ]);
     if (current !== reqId) return;
+    if (headerResult.status === "rejected") {
+      throw headerResult.reason;
+    }
+    const found = headerResult.value;
     block.value = found;
     if (!found) {
       notFound.value = true;
+    } else if (txResult.status === "fulfilled") {
+      txs.value = txResult.value.items;
     } else {
-      // Secondary fetch: a failure here must not blank the block already shown.
-      try {
-        const page = await blockService.getBlockTransactions(param, { net });
-        if (current !== reqId) return;
-        txs.value = page.items;
-      } catch (_secondaryErr) {
-        // Leave the in-block tx list empty; the block detail still renders.
-        if (current === reqId) txListFailed.value = true;
-      }
+      // Leave the in-block tx list empty; the block detail still renders.
+      txListFailed.value = true;
     }
   } catch (_err) {
     if (current === reqId) {
