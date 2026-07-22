@@ -636,11 +636,13 @@ async function handleSearch(query) {
   try {
     const searchService = await loadSearchService();
     const result = await resolveSearchResultWithTimeout((q) => searchService.search(q), query);
-    const location = resolveSearchLocation(query, result);
+    const chain = route.path.startsWith("/x") ? "neox" : "n3";
+    const location = resolveSearchLocation(query, result, { chain });
     if (location) router.push(location).catch(() => {});
   } catch (err) {
     if (import.meta.env.DEV) console.error("Search failed, falling back to default routing:", err);
-    const location = resolveSearchLocation(query, null);
+    const chain = route.path.startsWith("/x") ? "neox" : "n3";
+    const location = resolveSearchLocation(query, null, { chain });
     if (location) router.push(location).catch(() => {});
   }
 }

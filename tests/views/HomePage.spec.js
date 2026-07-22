@@ -50,6 +50,9 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: vi.fn().mockResolvedValue(),
   }),
+  useRoute: () => ({
+    path: "/",
+  }),
 }));
 
 vi.mock("@/services/blockService", () => ({

@@ -5,6 +5,7 @@
  * duplicated routing logic. Keeping it here makes layout refactors safe.
  */
 import { isValidNeoAddress, isValidTxHash } from "@/utils/explorerFormat";
+import { resolveNlIntent } from "@/utils/nlIntent";
 
 function routeStringToLocation(route) {
   const raw = String(route || "").trim();
@@ -47,9 +48,11 @@ function detectSearchType(query) {
  * Resolve a search query + API result into a Vue Router location object.
  * @param {string} query
  * @param {{ type?: string, data?: any } | null} result
+ * @param {{ chain?: "n3" | "neox" }} [options] - Active chain context for the
+ *   offline natural-language fallback.
  * @returns {{ path: string, query?: Record<string, string> } | null}
  */
-export function resolveSearchLocation(query, result) {
+export function resolveSearchLocation(query, result, options = {}) {
   const q = (query || "").trim();
   if (!q) return null;
 
@@ -84,6 +87,9 @@ export function resolveSearchLocation(query, result) {
   if (resolvedType === "nns") {
     return { path: "/nns", query: { search: data.title || q } };
   }
+
+  const intent = resolveNlIntent(q, { chain: options.chain });
+  if (intent) return intent;
 
   return { path: "/search", query: { q } };
 }

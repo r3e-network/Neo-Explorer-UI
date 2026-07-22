@@ -74,7 +74,7 @@
 defineOptions({ name: "HomePage" });
 
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";
 import PageHero from "@/components/common/PageHero.vue";
 import ChainSwitchTabs from "@/components/common/ChainSwitchTabs.vue";
@@ -103,6 +103,7 @@ import { isAbortError } from "@/utils/abortError";
 import { resolveNetworkName } from "@/utils/env";
 
 const router = useRouter();
+const route = useRoute();
 const { fetchPrices } = usePriceCache();
 const { transferSummaryByHash, enrichTransactions, clearTransferSummaries } = useTransferSummary();
 const { loadCommittee } = useCommittee();
@@ -1142,11 +1143,13 @@ async function handleSearch(inputValue) {
   searchLoading.value = true;
   try {
     const result = await resolveSearchResultWithTimeout((q) => searchService.search(q), query);
-    const location = resolveSearchLocation(query, result);
+    const chain = route.path.startsWith("/x") ? "neox" : "n3";
+    const location = resolveSearchLocation(query, result, { chain });
     if (location) router.push(location).catch(() => {});
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Search failed, using fallback routing:", err);
-    const fallback = resolveSearchLocation(query, null);
+    const chain = route.path.startsWith("/x") ? "neox" : "n3";
+    const fallback = resolveSearchLocation(query, null, { chain });
     if (fallback) router.push(fallback).catch(() => {});
   } finally {
     searchLoading.value = false;

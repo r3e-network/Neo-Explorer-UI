@@ -76,6 +76,18 @@ describe("resolveSearchLocation", () => {
     });
   });
 
+  it("consults the offline NL intent router before the /search fallback", () => {
+    expect(resolveSearchLocation("latest blocks", { type: "unknown" })).toEqual({
+      path: "/blocks/1",
+    });
+  });
+
+  it("passes the active chain to the NL intent router", () => {
+    expect(resolveSearchLocation("latest blocks", { type: "unknown" }, { chain: "neox" })).toEqual({
+      path: "/x/blocks",
+    });
+  });
+
   it("routes numeric query to block detail when backend lookup fails", () => {
     expect(resolveSearchLocation("123456", null)).toEqual({
       path: "/block-info/123456",
