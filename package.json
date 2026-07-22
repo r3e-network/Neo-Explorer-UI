@@ -28,6 +28,7 @@
     "audit:high": "npm audit --audit-level=high"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.113.0",
     "@cityofzion/neon-js": "^5.8.0",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
