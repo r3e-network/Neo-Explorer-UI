@@ -237,6 +237,7 @@ import DesktopNav from "@/components/layout/DesktopNav.vue";
 import MobileMenu from "@/components/layout/MobileMenu.vue";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
+import { resolveNeoxSearchLocation } from "@/utils/neoxSearchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
 import {
@@ -285,6 +286,7 @@ const NETWORKS = [
 ];
 
 let searchServiceModulePromise = null;
+let neoxSearchModulePromise = null;
 
 const mobileMenuOpen = ref(false);
 const networkDropdownOpen = ref(false);
@@ -631,18 +633,37 @@ async function loadSearchService() {
   return module.searchService;
 }
 
+async function loadNeoxSearch() {
+  if (!neoxSearchModulePromise) {
+    neoxSearchModulePromise = Promise.all([import("@/services/neox"), import("@/utils/neoxEnv")]);
+  }
+  const [services, env] = await neoxSearchModulePromise;
+  return { search: services.searchService, getNeoxNet: env.getNeoxNet };
+}
+
+// On /x the header search resolves against Neo X data + /x routes; elsewhere it
+// uses the N3 search service. Keeping the two paths separate stops an N3 typed
+// hit (e.g. an NNS match) from hijacking a Neo X query.
 async function handleSearch(query) {
   if (!query) return;
+  const isNeox = route.path.startsWith("/x");
   try {
+    if (isNeox) {
+      const { search, getNeoxNet } = await loadNeoxSearch();
+      const results = await resolveSearchResultWithTimeout((q) => search.search(q, { net: getNeoxNet() }), query);
+      const location = resolveNeoxSearchLocation(query, results);
+      if (location) router.push(location).catch(() => {});
+      return;
+    }
     const searchService = await loadSearchService();
     const result = await resolveSearchResultWithTimeout((q) => searchService.search(q), query);
-    const chain = route.path.startsWith("/x") ? "neox" : "n3";
-    const location = resolveSearchLocation(query, result, { chain });
+    const location = resolveSearchLocation(query, result, { chain: "n3" });
     if (location) router.push(location).catch(() => {});
   } catch (err) {
     if (import.meta.env.DEV) console.error("Search failed, falling back to default routing:", err);
-    const chain = route.path.startsWith("/x") ? "neox" : "n3";
-    const location = resolveSearchLocation(query, null, { chain });
+    const location = isNeox
+      ? resolveNeoxSearchLocation(query, null)
+      : resolveSearchLocation(query, null, { chain: "n3" });
     if (location) router.push(location).catch(() => {});
   }
 }
