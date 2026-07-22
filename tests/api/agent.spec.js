@@ -124,6 +124,7 @@ describe("api/agent", () => {
     expect(res.getJson()).toEqual({
       answer: "The current N3 block height is 12345.",
       toolUses: ["get_block_count"],
+      proposals: [],
       model: "claude-opus-4-8",
     });
 
@@ -144,6 +145,40 @@ describe("api/agent", () => {
     expect(payload.messages).toEqual([{ role: "user", content: "What is the N3 block height?" }]);
     expect(payload.thinking).toEqual({ type: "adaptive" });
     expect(payload.output_config).toEqual({ effort: "low" });
+  });
+
+  it("surfaces unsigned transaction proposals from MCP tool results", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
+    const proposal = {
+      proposal: true,
+      chain: "neox",
+      kind: "eth_tx",
+      tx: { from: "0xabc", to: "0xdef", value: "0x1", data: "0x", chainId: "0xba93", gas: "0x5208" },
+      summary: "Transfer 1 wei",
+    };
+    createMock.mockResolvedValueOnce({
+      model: "claude-opus-4-8",
+      stop_reason: "end_turn",
+      content: [
+        { type: "mcp_tool_use", name: "x_build_transfer" },
+        // MCP tool results arrive as JSON text inside a content array.
+        { type: "mcp_tool_result", content: [{ type: "text", text: JSON.stringify(proposal) }] },
+        { type: "text", text: "Here's a transfer for you to review and sign." },
+      ],
+    });
+
+    const handler = await loadHandler();
+    const res = createMockRes();
+    await handler(createRequest({ body: { query: "send 1 wei to 0xdef", chain: "neox" } }), res);
+
+    expect(res.statusCode).toBe(200);
+    const json = res.getJson();
+    expect(json.proposals).toEqual([proposal]);
+    expect(json.answer).toBe("Here's a transfer for you to review and sign.");
+    expect(json.toolUses).toEqual(["x_build_transfer"]);
+    // The response must never carry a signature, key, or broadcast result.
+    expect(JSON.stringify(json)).not.toMatch(/signature|privateKey|rawTransaction|sendRawTransaction/i);
   });
 
   it("rejects an oversized body with 413", async () => {

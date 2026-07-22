@@ -46,20 +46,26 @@ const REFUSAL_ANSWER =
   "contracts and I'll fetch the on-chain data for you.";
 
 const SYSTEM_PROMPT = [
-  "You are a READ-ONLY blockchain explorer assistant for the Neo N3 and Neo X networks.",
-  "You answer questions by calling the connected `neo` MCP server's read tools and",
-  "summarizing what they return. You have no other data source.",
+  "You are a blockchain assistant for the Neo N3 and Neo X networks. You answer",
+  "questions and help users prepare transactions by calling the connected `neo` MCP",
+  "server's tools and summarizing what they return. You have no other data source.",
   "",
   "Hard rules:",
   "- NEVER fabricate or guess a hash, address, balance, block height, token amount,",
-  "  or any other number. Every concrete value in your answer MUST come from a tool",
-  "  result. If a tool did not return it, say you don't have it.",
-  "- You are non-custodial and cannot write. You cannot send, sign, or broadcast a",
-  "  transaction, move funds, or change any state — you only read and analyze.",
-  "- If a question requires a write or a signed transaction, explain that the user",
-  "  must perform it themselves in their own wallet; do not offer to do it.",
-  "- Answer concisely in plain language. Prefer short, direct answers over walls of",
-  "  text. If a lookup fails or returns nothing, say so plainly.",
+  "  or any other number. Every concrete value MUST come from a tool result. If a",
+  "  tool did not return it, say you don't have it.",
+  "- You are NON-CUSTODIAL: you never hold keys and you cannot sign, send, or",
+  "  broadcast a transaction. For any action that moves funds or changes state, call",
+  "  the construct tools to build an UNSIGNED transaction proposal and the simulate",
+  "  tools to preview it, then present it for the user to review and sign in their",
+  "  OWN wallet (NeoLine/WalletConnect for Neo N3, MetaMask for Neo X).",
+  "- NEVER claim you executed, sent, submitted, or completed a transaction — you only",
+  "  prepare it; the user signs. Say 'here's a transaction for you to review and",
+  "  sign', never 'I sent it'.",
+  "- Before presenting a constructed transaction, simulate it (test-invoke / gas",
+  "  estimate) and surface the result and any risk you notice (large transfers,",
+  "  unlimited approvals, unlabeled or unknown recipients).",
+  "- Answer concisely in plain language. If a lookup fails or returns nothing, say so.",
 ].join("\n");
 
 const CHAIN_HINTS = {
@@ -213,6 +219,37 @@ function extractToolUses(response) {
     .filter((name) => typeof name === "string" && name.length > 0);
 }
 
+// Surface UNSIGNED transaction proposals returned by the MCP construct tools so
+// the client can render them and route to the user's wallet. A proposal is the
+// { proposal: true, chain, kind, ... } envelope the construct tools emit; it is
+// never a signed or broadcast transaction (the server never signs). The MCP
+// tool-result content may arrive as JSON text or as a structured value, so we
+// probe both shapes defensively.
+function extractProposals(response) {
+  const blocks = Array.isArray(response?.content) ? response.content : [];
+  const proposals = [];
+  for (const block of blocks) {
+    if (block?.type !== "mcp_tool_result") continue;
+    const items = Array.isArray(block.content) ? block.content : [block.content];
+    for (const item of items) {
+      let candidate = null;
+      if (item && typeof item === "object" && item.type === "text" && typeof item.text === "string") {
+        try {
+          candidate = JSON.parse(item.text);
+        } catch {
+          candidate = null;
+        }
+      } else if (item && typeof item === "object") {
+        candidate = item;
+      }
+      if (candidate && candidate.proposal === true && typeof candidate.chain === "string") {
+        proposals.push(candidate);
+      }
+    }
+  }
+  return proposals;
+}
+
 async function handler(req, res) {
   if (req.method !== "POST") {
     return methodNotAllowed(res, { Allow: "POST", ...NO_STORE });
@@ -301,6 +338,7 @@ async function handler(req, res) {
     {
       answer: extractText(response),
       toolUses: extractToolUses(response),
+      proposals: extractProposals(response),
       model: response?.model || MODEL,
     },
     NO_STORE,
