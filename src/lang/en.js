@@ -1,5 +1,11 @@
 const en = {
   neoX: {
+    gasUnit: "gas",
+    gasUnitsNote: "EVM computational gas — a resource metric, not the GAS token.",
+    bridgeHintTitle: "Bridge GAS to Neo X",
+    bridgeHintSubtitle: "Move N3 GAS via the official bridge",
+    bridgeHintAria: "Bridge N3 GAS to Neo X — opens the official Neo X bridge in a new tab",
+    bridgeHintDismiss: "Dismiss",
     antiMev: {
       active: "Active",
       notActiveAtHead: "Not active at head",

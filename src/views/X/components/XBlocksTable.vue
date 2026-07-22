@@ -25,8 +25,8 @@
           </th>
           <th scope="col" class="table-header-cell">{{ tf("neoX.txnCount", "Txn") }}</th>
           <template v-if="!dense">
-            <th scope="col" class="table-header-cell">{{ tf("neoX.gasUsed", "Gas Used") }}</th>
-            <th scope="col" class="table-header-cell hidden xl:table-cell">{{ tf("neoX.gasLimit", "Gas Limit") }}</th>
+            <th scope="col" class="table-header-cell" :title="tf('neoX.gasUnitsNote', 'EVM computational gas — a resource metric, not the GAS token.')">{{ tf("neoX.gasUsed", "Gas Used") }}</th>
+            <th scope="col" class="table-header-cell hidden xl:table-cell" :title="tf('neoX.gasUnitsNote', 'EVM computational gas — a resource metric, not the GAS token.')">{{ tf("neoX.gasLimit", "Gas Limit") }}</th>
             <th scope="col" class="table-header-cell hidden xl:table-cell">{{ tf("neoX.baseFee", "Base Fee") }}</th>
             <th scope="col" class="table-header-cell hidden lg:table-cell">{{ tf("neoX.burntFees", "Burnt Fees") }}</th>
             <th scope="col" class="table-header-cell">{{ tf("neoX.primaryValidator", "Primary Validator") }}</th>

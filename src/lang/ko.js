@@ -1,5 +1,11 @@
 const ko = {
   neoX: {
+    gasUnit: "gas",
+    gasUnitsNote: "EVM 연산 gas 사용량 — 리소스 지표이며 GAS 토큰이 아닙니다.",
+    bridgeHintTitle: "GAS를 Neo X로 브리지",
+    bridgeHintSubtitle: "공식 브리지로 N3 GAS 이동",
+    bridgeHintAria: "N3 GAS를 Neo X로 브리지 — 공식 Neo X 브리지를 새 탭에서 엽니다",
+    bridgeHintDismiss: "닫기",
     antiMev: {
       active: "활성",
       notActiveAtHead: "최신 블록에서 비활성",

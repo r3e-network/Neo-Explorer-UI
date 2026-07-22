@@ -1,5 +1,11 @@
 const zh = {
   neoX: {
+    gasUnit: "gas",
+    gasUnitsNote: "EVM 计算 gas 用量——一种资源计量单位，不是 GAS 代币。",
+    bridgeHintTitle: "把 GAS 跨链到 Neo X",
+    bridgeHintSubtitle: "通过官方跨链桥转入 N3 GAS",
+    bridgeHintAria: "把 N3 GAS 跨链到 Neo X——在新标签页打开官方 Neo X 跨链桥",
+    bridgeHintDismiss: "关闭",
     antiMev: {
       active: "已启用",
       notActiveAtHead: "当前区块头未启用",

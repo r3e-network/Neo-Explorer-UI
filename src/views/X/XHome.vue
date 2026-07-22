@@ -1,5 +1,6 @@
 <template>
   <div class="x-home-page">
+    <XBridgeHintPill />
     <!-- Hero Section (dark in both themes, mirrors N3 HomePage hero) -->
     <PageHero :particles="3">
       <section class="hero-section relative border-b border-white/10 bg-transparent animate-page-enter">
@@ -236,8 +237,27 @@
               <span class="mini-value">{{ stats ? formatInt(stats.transactionsToday) : "—" }}</span>
             </div>
             <div class="mini-stat">
-              <span class="mini-label">{{ tf("neoX.gasUsedToday", "Gas Used Today") }}</span>
-              <span class="mini-value">{{ gasUsedTodayLabel }}</span>
+              <span class="mini-label inline-flex items-center gap-1">
+                {{ tf("neoX.gasUsedToday", "Gas Used Today") }}
+                <span
+                  class="cursor-help text-low"
+                  tabindex="0"
+                  role="note"
+                  :aria-label="tf('neoX.gasUnitsNote', 'EVM computational gas — a resource metric, not the GAS token.')"
+                  :title="tf('neoX.gasUnitsNote', 'EVM computational gas — a resource metric, not the GAS token.')"
+                >
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 11v5m0-8h.01" />
+                  </svg>
+                </span>
+              </span>
+              <span class="mini-value">
+                {{ gasUsedTodayLabel }}<span
+                  v-if="gasUsedTodayLabel !== '—'"
+                  class="text-mid ml-1 text-xs font-normal"
+                >{{ tf("neoX.gasUnit", "gas") }}</span>
+              </span>
             </div>
             <div class="mini-stat">
               <span class="mini-label">{{ tf("neoX.networkUtilization", "Network Utilization") }}</span>
@@ -357,6 +377,7 @@ import { useRouter } from "vue-router";
 import PageHero from "@/components/common/PageHero.vue";
 import ChainSwitchTabs from "@/components/common/ChainSwitchTabs.vue";
 import AddNeoxChainButton from "@/components/common/AddNeoxChainButton.vue";
+import XBridgeHintPill from "@/views/X/components/XBridgeHintPill.vue";
 import AnimatedNumber from "@/components/common/AnimatedNumber.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";

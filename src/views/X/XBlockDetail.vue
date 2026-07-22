@@ -202,7 +202,7 @@
 
             <InfoRow :label="tf('neoX.gasUsedLimit', 'Gas Used / Limit')">
               <span class="inline-flex flex-wrap items-center gap-2">
-                <span>{{ formatInt(block.gasUsed) }} / {{ formatInt(block.gasLimit) }}</span>
+                <span>{{ formatInt(block.gasUsed) }} / {{ formatInt(block.gasLimit) }} <span class="text-mid text-xs font-normal">{{ tf("neoX.gasUnit", "gas") }}</span></span>
                 <span v-if="block.gasUsedPercentage != null" class="bg-line-soft inline-block h-1.5 w-40 overflow-hidden rounded-full">
                   <span
                     class="bg-primary-500 block h-full rounded-full"

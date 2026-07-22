@@ -1,5 +1,11 @@
 const ja = {
   neoX: {
+    gasUnit: "gas",
+    gasUnitsNote: "EVM の計算 gas 使用量——リソース指標であり、GAS トークンではありません。",
+    bridgeHintTitle: "GAS を Neo X へブリッジ",
+    bridgeHintSubtitle: "公式ブリッジで N3 GAS を移動",
+    bridgeHintAria: "N3 GAS を Neo X へブリッジ——公式 Neo X ブリッジを新しいタブで開きます",
+    bridgeHintDismiss: "閉じる",
     antiMev: {
       active: "有効",
       notActiveAtHead: "最新ブロックでは無効",

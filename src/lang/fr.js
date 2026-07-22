@@ -1,5 +1,11 @@
 const fr = {
   neoX: {
+    gasUnit: "gas",
+    gasUnitsNote: "Gas de calcul EVM — une mesure de ressource, pas le jeton GAS.",
+    bridgeHintTitle: "Transférer du GAS vers Neo X",
+    bridgeHintSubtitle: "Déplacez du GAS N3 via le pont officiel",
+    bridgeHintAria: "Transférer du GAS N3 vers Neo X — ouvre le pont officiel Neo X dans un nouvel onglet",
+    bridgeHintDismiss: "Fermer",
     antiMev: {
       active: "Actif",
       notActiveAtHead: "Inactif au bloc de tête",
