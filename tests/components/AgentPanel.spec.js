@@ -191,6 +191,22 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+// Mirrors agentService.askAgent's wrapping of an aborted fetch
+// (agentService.js:76-80): the DOMException-shaped AbortError is re-thrown as an
+// AgentServiceError whose `cause` is that AbortError. The real service NEVER
+// throws a bare `{ name: "AbortError" }`, so a test that rejects with one
+// exercises a branch production cannot reach. Use this to reproduce the true
+// cancellation shape the panel has to recognise.
+function abortRejection() {
+  const abort = new Error("The operation was aborted.");
+  abort.name = "AbortError";
+  const wrapped = new Error(`Agent request failed: ${abort.message}`);
+  wrapped.name = "AgentServiceError";
+  wrapped.code = "agent_request_failed";
+  wrapped.cause = abort;
+  return wrapped;
+}
+
 // jsdom reports 0 for every scroll metric. The metrics are installed on
 // HTMLDivElement.prototype rather than on one element because @vue/test-utils
 // re-creates a <Transition>'s child element on every update (a plain
@@ -399,11 +415,17 @@ describe("AgentPanel — conversation", () => {
     expect(call.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("keeps a 40-turn conversation inside the backend caps and shows the trim divider", async () => {
+  it("keeps a long conversation inside the backend caps and shows the trim divider", async () => {
     await mountPanel({ open: true });
     const question = `Explain this transaction. ${"detail ".repeat(30)}`;
 
-    for (let turn = 0; turn < 40; turn += 1) {
+    // 14 turns = 28 messages, comfortably past the 16-message window, so the
+    // trim divider and the caps below are exercised. (40 turns proved the same
+    // invariant but re-rendered a growing transcript O(n^2) times, which timed
+    // out under a loaded parallel runner and leaked pending askAgent calls into
+    // the following tests — the far smaller count is deterministic and fast.)
+    const TURNS = 14;
+    for (let turn = 0; turn < TURNS; turn += 1) {
       serviceMock.askAgent.mockResolvedValueOnce({
         answer: `Answer ${turn}. ${"body ".repeat(30)}`,
         toolUses: [],
@@ -420,7 +442,7 @@ describe("AgentPanel — conversation", () => {
     // The window must never open on an assistant turn.
     expect(last.messages[0].role).toBe("user");
     expect(bodyText()).toContain(en.agent.historyTrimmed);
-  });
+  }, 15_000);
 
   it("classifies a 413 as un-retryable instead of a generic failure", async () => {
     const error = new Error("payload too large");
@@ -453,6 +475,61 @@ describe("AgentPanel — conversation", () => {
     expect(serviceMock.askAgent).toHaveBeenCalledTimes(2);
     expect(bodyText()).toContain("Recovered.");
     expect(bodyText()).not.toContain(en.agent.errorGeneric);
+  });
+
+  it("regenerates the row whose button was clicked, not the last turn", async () => {
+    await mountPanel({ open: true });
+
+    serviceMock.askAgent.mockResolvedValueOnce({
+      answer: "Answer one.",
+      toolUses: [],
+      proposals: [],
+      model: "",
+    });
+    await ask("question one");
+    serviceMock.askAgent.mockResolvedValueOnce({
+      answer: "Answer two.",
+      toolUses: [],
+      proposals: [],
+      model: "",
+    });
+    await ask("question two");
+    serviceMock.askAgent.mockResolvedValueOnce({
+      answer: "Answer three.",
+      toolUses: [],
+      proposals: [],
+      model: "",
+    });
+    await ask("question three");
+
+    expect(serviceMock.askAgent).toHaveBeenCalledTimes(3);
+
+    // One Regenerate button per assistant answer, in transcript order.
+    const regenButtons = qa("#agent-panel .agent-regenerate");
+    expect(regenButtons).toHaveLength(3);
+
+    // Click Regenerate on the FIRST answer. The blind pop() would instead delete
+    // and re-send the THIRD turn.
+    serviceMock.askAgent.mockResolvedValueOnce({
+      answer: "Regenerated one.",
+      toolUses: [],
+      proposals: [],
+      model: "",
+    });
+    regenButtons[0].dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+
+    // Re-runs from the first question and truncates every later turn.
+    const lastCall = serviceMock.askAgent.mock.calls.at(-1)[0];
+    expect(lastCall.messages).toEqual([{ role: "user", content: "question one" }]);
+
+    expect(bodyText()).toContain("Regenerated one.");
+    expect(bodyText()).not.toContain("Answer one.");
+    expect(bodyText()).not.toContain("question two");
+    expect(bodyText()).not.toContain("Answer two.");
+    expect(bodyText()).not.toContain("question three");
+    expect(bodyText()).not.toContain("Answer three.");
   });
 
   it("shows progressive loading copy without claiming to know what is happening", async () => {
@@ -501,13 +578,16 @@ describe("AgentPanel — conversation", () => {
     stop.dispatchEvent(new Event("click", { bubbles: true }));
     await nextTick();
 
-    const abortError = new Error("aborted");
-    abortError.name = "AbortError";
-    pending.reject(abortError);
+    // The aborted fetch rejects with the shape the real service produces.
+    pending.reject(abortRejection());
     await flushPromises();
     await nextTick();
 
     expect(bodyText()).toContain(en.agent.stopped);
+    // A user-initiated Stop is a cancellation, never a failure: it must not
+    // push an "offline" (or any) error bubble next to the Stopped marker.
+    expect(bodyText()).not.toContain(en.agent.errorOffline);
+    expect(bodyText()).not.toContain(en.agent.errorGeneric);
     const regenerate = buttonByLabel(en.agent.regenerate);
     expect(regenerate).toBeTruthy();
 
@@ -546,15 +626,16 @@ describe("AgentPanel — conversation", () => {
     await nextTick();
     expect(panelEl().getAttribute("aria-busy")).toBe("true");
 
-    const abortError = new Error("aborted");
-    abortError.name = "AbortError";
-    first.reject(abortError);
+    first.reject(abortRejection());
     await flushPromises();
     await nextTick();
 
     // The stale rejection must not clear the second request's loading state.
     expect(panelEl().getAttribute("aria-busy")).toBe("true");
     expect(buttonByLabel(en.agent.stop)).toBeTruthy();
+    // ...nor push a spurious error bubble into the live conversation.
+    expect(bodyText()).not.toContain(en.agent.errorOffline);
+    expect(bodyText()).not.toContain(en.agent.errorGeneric);
 
     second.resolve({ answer: "Second answer.", toolUses: [], proposals: [], model: "" });
     await flushPromises();
@@ -820,6 +901,70 @@ describe("AgentPanel — session persistence", () => {
     expect(text).toContain("**You:**");
     expect(text).toContain("hello");
     expect(q('#agent-panel [role="status"]').textContent.trim()).toBe(en.agent.copyTranscriptDone);
+  });
+});
+
+/* -------------------------------------------------- sign-state safety ---- */
+
+describe("AgentPanel — proposal sign state survives close/reopen", () => {
+  // Root cause of the fund-safety re-arm: the drawer used `v-if="open"`, so
+  // closing it UNMOUNTED the transcript and every AgentProposalCard with it.
+  // A card that had already signed and broadcast lost its local receipt/pending
+  // state, and on reopen it remounted fully signable — a second, independent
+  // transfer of the same funds. The fix is `v-show="open"`: the transcript (and
+  // each card's post-sign state) stays mounted across close, so a signed
+  // proposal is never torn down and rebuilt into an armed Sign button.
+  //
+  // NOTE: @vue/test-utils re-creates a <Transition>'s child on every toggle
+  // (see the installScrollMetrics comment above), which resets a child
+  // component's *internal* refs in the harness even though a real browser keeps
+  // them under v-show. The regression therefore pins the observable root cause —
+  // the transcript must NOT be unmounted on close — rather than the card's
+  // internal state, which the harness cannot round-trip.
+  it("keeps the signed proposal card mounted across close instead of unmounting it", async () => {
+    serviceMock.askAgent.mockResolvedValue({
+      answer: "Here is a transfer.",
+      toolUses: [],
+      proposals: [n3Proposal()],
+      model: "",
+    });
+    // The wallet accepts and broadcasts; the card moves to its receipt state.
+    signerMock.signProposal.mockResolvedValue({
+      chain: "n3",
+      txid: "0xabc0000000000000000000000000000000000000000000000000000000000001",
+    });
+
+    const wrapper = await mountPanel({ open: true });
+    await ask("prepare a transfer");
+
+    expect(wrapper.findAllComponents(AgentProposalCard)).toHaveLength(1);
+
+    const sign = buttonByLabel(en.agent.proposal.sign);
+    expect(sign).toBeTruthy();
+    sign.dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+
+    // The wallet broadcast exactly once; the receipt replaced the Sign button.
+    expect(signerMock.signProposal).toHaveBeenCalledTimes(1);
+    expect(bodyText()).toContain(en.agent.proposal.pending);
+    expect(buttonByLabel(en.agent.proposal.sign)).toBeUndefined();
+
+    // Closing the drawer must not tear the card down. The prop toggle stands in
+    // for every dismissal path (Escape / backdrop / FAB / hotkey) — they share
+    // this one code path. Under the old v-if these two assertions were 0 / null.
+    await wrapper.setProps({ open: false });
+    await flushPromises();
+    await nextTick();
+
+    expect(document.getElementById("agent-panel")).not.toBeNull();
+    expect(wrapper.findAllComponents(AgentProposalCard)).toHaveLength(1);
+
+    // ...and it is still there, one card, after reopening — never a second one.
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+    await nextTick();
+    expect(wrapper.findAllComponents(AgentProposalCard)).toHaveLength(1);
   });
 });
 

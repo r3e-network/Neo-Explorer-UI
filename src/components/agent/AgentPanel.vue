@@ -10,8 +10,16 @@
     </Transition>
 
     <Transition name="agent-slide">
+      <!--
+        v-show, not v-if: unmounting the drawer on close resets every
+        AgentProposalCard's local sign state, so a proposal that was already
+        signed and broadcast would remount with its Sign button re-armed — a
+        second, independent transfer of the same funds the moment the user
+        reopens. Keeping the transcript mounted preserves each card's post-sign
+        receipt and keeps its Sign button disabled.
+      -->
       <aside
-        v-if="open"
+        v-show="open"
         id="agent-panel"
         :ref="setPanelEl"
         class="agent-panel"
@@ -213,6 +221,7 @@ import AgentSuggestions from "@/components/agent/AgentSuggestions.vue";
 import { useBodyScrollLock } from "@/composables/useBodyScrollLock";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 import { askAgent } from "@/services/agentService";
+import { isAbortError } from "@/utils/abortError";
 import { classifyAgentError } from "@/utils/agentErrors";
 import { windowHistory } from "@/utils/agentHistory";
 import { toMarkdown } from "@/utils/agentTranscript";
@@ -687,7 +696,13 @@ async function runConversation() {
     }
     noteIncoming();
   } catch (error) {
-    if (error?.name === "AbortError") return;
+    // A user-initiated Stop / New chat / replacement request, or an unmount,
+    // aborts this controller. agentService wraps the rejected fetch as
+    // AgentServiceError (whose `cause` is the AbortError), so the old bare
+    // `error.name === "AbortError"` check never matched and a deliberate cancel
+    // surfaced as a bogus "offline" error bubble. Read the controller's own
+    // aborted flag and unwrap the cause: a cancellation must never push an error.
+    if (active.signal.aborted || isAbortError(error) || isAbortError(error?.cause)) return;
     pushMessage({ role: "assistant", content: "", error: classifyAgentError(error) });
     noteIncoming();
   } finally {
@@ -727,21 +742,29 @@ function send() {
   runConversation();
 }
 
-// The guard is first on purpose: it used to sit below the pop(), so a mistimed
-// click deleted the failed turn and left nothing in its place.
-function retry() {
+// Retry/Regenerate act on the specific row whose button was clicked, never
+// blindly on the last turn. AgentMessageRow renders a button on every assistant
+// answer and emits *its own* message id; truncating the transcript at that id
+// drops the targeted turn (and everything after it) so runConversation re-runs
+// from the preceding question. A blind pop() deleted whichever turn happened to
+// be last — a newer answer, or, with a trailing system divider, nothing at all.
+function truncateFromId(id) {
+  if (!id) return false;
+  const index = messages.value.findIndex((message) => message.id === id);
+  if (index < 0) return false;
+  messages.value.splice(index);
+  return true;
+}
+
+function retry(id) {
   if (loading.value) return;
-  const last = messages.value[messages.value.length - 1];
-  if (last && last.role === "assistant" && (last.error || last.unavailable)) {
-    messages.value.pop();
-  }
+  if (!truncateFromId(id)) return;
   runConversation();
 }
 
-function regenerate() {
+function regenerate(id) {
   if (loading.value) return;
-  const last = messages.value[messages.value.length - 1];
-  if (last && last.role === "assistant") messages.value.pop();
+  if (!truncateFromId(id)) return;
   runConversation();
 }
 

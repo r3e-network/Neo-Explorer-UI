@@ -51,6 +51,17 @@ const MAX_TOOL_ITERATIONS = 6;
 // upstream call is aborted before the platform kills the invocation.
 const REQUEST_TIMEOUT_MS = 55_000;
 
+// Absolute wall-clock budget for the whole handler, kept comfortably under the
+// 60s function `maxDuration` (see module.exports.config). The per-call timeouts
+// (model REQUEST_TIMEOUT_MS + tool TOOL_TIMEOUT_MS, across up to
+// MAX_TOOL_ITERATIONS rounds) can sum to many minutes; without an aggregate
+// deadline a slow chain is hard-killed by the platform mid-flight, producing a
+// bare 504 instead of the graceful degraded JSON this handler returns
+// everywhere else. Each model call and tool round is gated on the remaining
+// budget; when it runs out the loop stops and returns whatever was collected
+// (with `truncated: true`).
+const HANDLER_DEADLINE_MS = Number(process.env.AGENT_DEADLINE_MS || 50_000);
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = Number(process.env.AGENT_RATE_LIMIT_PER_MINUTE || 20);
 
@@ -71,6 +82,13 @@ const REFUSAL_ANSWER =
   "I can't help with that request. I'm a read-only Neo N3 and Neo X explorer " +
   "assistant — ask me to look up blocks, transactions, addresses, balances, or " +
   "contracts and I'll fetch the on-chain data for you.";
+
+// Returned when the wall-clock budget is exhausted before the model produced a
+// final answer, so the client still gets a well-formed 200 (with truncated:true)
+// instead of a platform 504 with no body.
+const DEADLINE_ANSWER =
+  "That request is taking longer than I can spend on it right now. Please try " +
+  "again, or ask a more specific question so I can answer in fewer steps.";
 
 // Returned by the deterministic topic gate for requests with no Neo/blockchain
 // signal at all, so off-topic use never reaches the paid model or the MCP server.
@@ -441,12 +459,17 @@ async function handler(req, res) {
     return sendJson(res, validated.status, { error: validated.error }, NO_STORE);
   }
 
+  // Key the limit by client only. `validated.chain` is client-controlled and
+  // normalises to three values (n3|neox|both), so keying on it would hand one IP
+  // three independent buckets — 3x the documented AGENT_RATE_LIMIT_PER_MINUTE.
+  // All three chains hit the same model + MCP backend, so a single per-IP bucket
+  // is the intended ceiling; `chain` stays purely a prompt hint.
   if (
     !enforceSimpleRateLimit({
       req,
       res,
       prefix: "agent",
-      key: validated.chain,
+      key: "chat",
       windowMs: RATE_LIMIT_WINDOW_MS,
       maxRequests: RATE_LIMIT_MAX,
     })
@@ -469,6 +492,15 @@ async function handler(req, res) {
   const toolUses = [];
   const proposals = [];
   let response;
+  let truncated = false;
+
+  // Absolute wall-clock budget for the whole tool loop. The AbortController is
+  // tied to the same deadline so an in-flight MCP tool round-trip is also cut
+  // off, keeping any single tool call from pushing the invocation past budget.
+  const deadline = Date.now() + HANDLER_DEADLINE_MS;
+  const abortController = new AbortController();
+  const deadlineTimer = setTimeout(() => abortController.abort(), HANDLER_DEADLINE_MS);
+  if (typeof deadlineTimer.unref === "function") deadlineTimer.unref();
 
   try {
     const { listTools, callTool } = await loadMcpClient();
@@ -485,9 +517,18 @@ async function handler(req, res) {
 
     // Manual client-side tool loop. Each pass sends the conversation; if the
     // model requests tools we execute them, append the assistant turn and a
-    // tool_result turn, and re-call — bounded by MAX_TOOL_ITERATIONS.
+    // tool_result turn, and re-call — bounded by MAX_TOOL_ITERATIONS AND by the
+    // wall-clock deadline above.
     let iteration = 0;
     for (;;) {
+      // Stop before starting a model call we cannot afford, and cap its timeout
+      // to the budget that actually remains so it can never overrun on its own.
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        truncated = true;
+        break;
+      }
+
       response = await client.messages.create(
         {
           model: MODEL,
@@ -496,7 +537,7 @@ async function handler(req, res) {
           messages,
           tools,
         },
-        { timeout: REQUEST_TIMEOUT_MS },
+        { timeout: Math.max(1, Math.min(REQUEST_TIMEOUT_MS, remainingMs)) },
       );
 
       // A refusal stop_reason means content is not a normal answer; return a
@@ -517,13 +558,22 @@ async function handler(req, res) {
       iteration += 1;
       if (iteration > MAX_TOOL_ITERATIONS) break; // loop guard
 
+      // A tool round plus the model call that must follow it cannot fit once the
+      // budget is spent; stop here with whatever we have rather than risk a
+      // platform kill mid-round.
+      if (Date.now() >= deadline) {
+        truncated = true;
+        break;
+      }
+
       for (const block of toolBlocks) toolUses.push(block.name);
 
-      // Run the requested tools in parallel, collecting results in order.
+      // Run the requested tools in parallel, collecting results in order. The
+      // shared abort signal cuts any tool still in flight when the deadline hits.
       const results = await Promise.all(
         toolBlocks.map(async (block) => {
           try {
-            const content = await callTool(block.name, block.input);
+            const content = await callTool(block.name, block.input, abortController.signal);
             return { type: "tool_result", tool_use_id: block.id, content };
           } catch {
             return {
@@ -546,16 +596,23 @@ async function handler(req, res) {
   } catch (_err) {
     // Never leak the SDK/MCP error, the key, or the bearer.
     return sendJson(res, 502, UNAVAILABLE_AGENT_UPSTREAM, NO_STORE);
+  } finally {
+    clearTimeout(deadlineTimer);
   }
 
+  const answer = extractText(response);
   return sendJson(
     res,
     200,
     {
-      answer: extractText(response),
+      // Prefer any partial text the model already produced; fall back to a
+      // graceful "took too long" message only when the budget ran out before
+      // any answer text existed.
+      answer: truncated && answer.length === 0 ? DEADLINE_ANSWER : answer,
       toolUses,
       proposals,
       model: (response && response.model) || MODEL,
+      ...(truncated ? { truncated: true } : {}),
     },
     NO_STORE,
   );

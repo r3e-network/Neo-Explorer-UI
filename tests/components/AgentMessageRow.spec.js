@@ -207,7 +207,8 @@ describe("AgentMessageRow", () => {
       await wrapper.find(".agent-actions .agent-regenerate").trigger("click");
 
       expect(wrapper.emitted("regenerate")).toHaveLength(1);
-      expect(wrapper.emitted("regenerate")[0]).toEqual([]);
+      // The event carries this row's id so the panel targets *this* turn.
+      expect(wrapper.emitted("regenerate")[0]).toEqual(["m2"]);
       expect(wrapper.emitted("retry")).toBeUndefined();
     });
 
@@ -234,6 +235,7 @@ describe("AgentMessageRow", () => {
 
       await button.trigger("click");
       expect(wrapper.emitted("regenerate")).toHaveLength(1);
+      expect(wrapper.emitted("regenerate")[0]).toEqual(["m3"]);
       expect(wrapper.emitted("retry")).toBeUndefined();
     });
 
@@ -246,19 +248,27 @@ describe("AgentMessageRow", () => {
   });
 
   describe("unavailable turn", () => {
-    it("shows the not-configured copy with no retry (a retry cannot fix it)", () => {
-      const wrapper = mountRow({
-        id: "m4",
-        role: "assistant",
-        content: "",
-        unavailable: true,
-        reason: "agent_not_configured",
-      });
+    // The only reasons that actually cross the wire: api/agent.js emits
+    // `agent_unconfigured` / `mcp_unconfigured`, and agentService's
+    // normalizeReason falls back to `agent_unavailable`. (The earlier fixture
+    // used `agent_not_configured`, which no producer ever emits, so the test
+    // asserted a string that could never reach this branch in production.)
+    it.each(["agent_unconfigured", "mcp_unconfigured", "agent_unavailable"])(
+      "shows the not-configured copy with no retry for %s (a retry cannot fix it)",
+      (reason) => {
+        const wrapper = mountRow({
+          id: "m4",
+          role: "assistant",
+          content: "",
+          unavailable: true,
+          reason,
+        });
 
-      expect(bubble(wrapper).classes()).toContain("agent-bubble-unavailable");
-      expect(wrapper.text()).toContain("The AI assistant isn't enabled on this deployment yet.");
-      expect(wrapper.find(".agent-retry").exists()).toBe(false);
-    });
+        expect(bubble(wrapper).classes()).toContain("agent-bubble-unavailable");
+        expect(wrapper.text()).toContain("The AI assistant isn't enabled on this deployment yet.");
+        expect(wrapper.find(".agent-retry").exists()).toBe(false);
+      },
+    );
 
     it("shows the upstream copy with a retry that emits retry", async () => {
       const wrapper = mountRow({
@@ -277,6 +287,7 @@ describe("AgentMessageRow", () => {
       await button.trigger("click");
 
       expect(wrapper.emitted("retry")).toHaveLength(1);
+      expect(wrapper.emitted("retry")[0]).toEqual(["m4"]);
       expect(wrapper.emitted("regenerate")).toBeUndefined();
     });
 
@@ -315,6 +326,7 @@ describe("AgentMessageRow", () => {
       await wrapper.find(".agent-retry").trigger("click");
 
       expect(wrapper.emitted("retry")).toHaveLength(1);
+      expect(wrapper.emitted("retry")[0]).toEqual(["m5"]);
     });
 
     it("hides the technical detail behind a disclosure, in mono", () => {
@@ -477,7 +489,7 @@ describe("AgentMessageRow", () => {
         { id: "a", role: "user", content: "hi" },
         { id: "b", role: "assistant", content: "hello" },
         { id: "c", role: "assistant", content: "", stopped: true },
-        { id: "d", role: "assistant", content: "", unavailable: true, reason: "agent_not_configured" },
+        { id: "d", role: "assistant", content: "", unavailable: true, reason: "agent_unconfigured" },
         { id: "e", role: "assistant", content: "", unavailable: true, reason: "agent_upstream_error" },
         { id: "f", role: "assistant", content: "", error: { kind: "generic" } },
       ];
@@ -497,7 +509,7 @@ describe("AgentMessageRow", () => {
         { id: "a", role: "user", content: "What happened in block 42?" },
         { id: "b", role: "assistant", content: "Block 42 sealed 3 transactions." },
         { id: "c", role: "assistant", content: "", stopped: true },
-        { id: "d", role: "assistant", content: "", unavailable: true, reason: "agent_not_configured" },
+        { id: "d", role: "assistant", content: "", unavailable: true, reason: "agent_unconfigured" },
         { id: "e", role: "assistant", content: "", unavailable: true, reason: "agent_upstream_error" },
         { id: "f", role: "assistant", content: "", error: { kind: "rateLimited" } },
         { id: "g", role: "assistant", content: "", error: { kind: "tooLong" } },

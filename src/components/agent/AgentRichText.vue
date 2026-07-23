@@ -78,12 +78,19 @@ function renderBlock(block, key, ctx) {
         { key, class: "agent-rich-heading text-sm font-semibold text-high" },
         renderInline(block.inline, ctx),
       );
-    case "list":
+    case "list": {
+      const attrs = { key, class: "agent-rich-list" };
+      // Preserve the model's own starting number (e.g. a paginated "11. 12. 13.")
+      // instead of letting the browser renumber the <ol> from 1.
+      if (block.ordered && typeof block.start === "number" && block.start !== 1) {
+        attrs.start = block.start;
+      }
       return h(
         block.ordered ? "ol" : "ul",
-        { key, class: "agent-rich-list" },
+        attrs,
         block.items.map((item, index) => h("li", { key: index }, renderInline(item, ctx))),
       );
+    }
     case "code":
       return h("pre", { key, class: "agent-rich-pre" }, [
         h(

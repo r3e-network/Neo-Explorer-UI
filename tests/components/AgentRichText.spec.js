@@ -110,6 +110,19 @@ describe("AgentRichText — block rendering", () => {
     await wrapper.setProps({ text: "- second" });
     expect(wrapper.find("li").text()).toBe("second");
   });
+
+  it("emits <ol start=n> so a paginated list keeps the model's numbering", () => {
+    const wrapper = mountRich({ text: "11. first\n12. second\n13. third" });
+    const ol = wrapper.find("ol");
+    expect(ol.exists()).toBe(true);
+    expect(ol.attributes("start")).toBe("11");
+    expect(ol.findAll("li").map((li) => li.text())).toEqual(["first", "second", "third"]);
+  });
+
+  it("omits the start attribute for an ordinary 1-based list", () => {
+    const wrapper = mountRich({ text: "1. one\n2. two" });
+    expect(wrapper.find("ol").attributes("start")).toBeUndefined();
+  });
 });
 
 describe("AgentRichText — untrusted model output stays inert", () => {
@@ -173,8 +186,6 @@ describe("AgentRichText — entity linking", () => {
     { chain: "n3", text: N3_ADDRESS, href: `/account-profile/${N3_ADDRESS}` },
     { chain: "both", text: N3_ADDRESS, href: `/account-profile/${N3_ADDRESS}` },
     { chain: "neox", text: EVM_ADDRESS, href: `/x/address/${EVM_ADDRESS}` },
-    { chain: "n3", text: HASH_32, href: `/transaction-info/${HASH_32}` },
-    { chain: "neox", text: HASH_32, href: `/x/tx/${HASH_32}` },
     { chain: "n3", text: "block 1234", href: "/block-info/1234" },
     { chain: "neox", text: "block #1234", href: "/x/block-info/1234" },
   ];
@@ -187,9 +198,16 @@ describe("AgentRichText — entity linking", () => {
     expect(link.classes()).toEqual(expect.arrayContaining(["etherscan-link", "font-hash"]));
   });
 
-  it("never produces the /transaction/ redirect path for a hash", () => {
-    const wrapper = mountRich({ text: HASH_32, chain: "n3" });
-    expect(wrapper.find("a").attributes("href")).not.toMatch(/^\/transaction\//);
+  it("never links a bare 32-byte hash — tx and block hashes are shape-identical", () => {
+    // A Neo N3 block hash and a transaction hash are both `0x` + 64 hex, so a bare
+    // hash is ambiguous; it must render as selectable text, never a guessed link.
+    for (const chain of ["n3", "neox", "both"]) {
+      const wrapper = mountRich({ text: HASH_32, chain });
+      expect(wrapper.findAll("a"), `chain ${chain}`).toHaveLength(0);
+      const span = wrapper.find("span.agent-rich-entity");
+      expect(span.exists()).toBe(true);
+      expect(span.text()).toBe(HASH_32);
+    }
   });
 
   const ambiguous = [
@@ -210,8 +228,8 @@ describe("AgentRichText — entity linking", () => {
   });
 
   it("falls back to n3 targets for an unknown chain value", () => {
-    const wrapper = mountRich({ text: HASH_32, chain: "dogecoin" });
-    expect(wrapper.find("a").attributes("href")).toBe(`/transaction-info/${HASH_32}`);
+    const wrapper = mountRich({ text: N3_ADDRESS, chain: "dogecoin" });
+    expect(wrapper.find("a").attributes("href")).toBe(`/account-profile/${N3_ADDRESS}`);
   });
 
   it("renders no links at all when linkEntities is false", () => {
@@ -234,6 +252,15 @@ describe("AgentRichText — entity linking", () => {
     const wrapper = mountRich({ text: `\`${HASH_32}\``, chain: "n3" });
     expect(wrapper.findAll("a")).toHaveLength(0);
     expect(wrapper.find("code").text()).toBe(HASH_32);
+  });
+
+  it("does not link an attacker-set token name shaped like an N3 address", () => {
+    // 34 base58 characters with a broken checksum — a token/NNS name, not an
+    // address — must render as plain text, never a live /account-profile link.
+    const forged = `${N3_ADDRESS.slice(0, -2)}XX`;
+    const wrapper = mountRich({ text: `You hold 1,000 ${forged} tokens`, chain: "n3" });
+    expect(wrapper.findAll("a")).toHaveLength(0);
+    expect(wrapper.text()).toContain(forged);
   });
 });
 

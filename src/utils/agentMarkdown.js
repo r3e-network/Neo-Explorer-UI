@@ -25,14 +25,22 @@
  * `*em*`/`_em_`. Everything else is literal text.
  */
 
+import { addressToScriptHash } from "@/utils/neoHelpers";
+
 /**
  * Route templates for entities detected in assistant prose.
  *
  * `null` means "there is no unambiguous target for this chain" — the renderer then
  * shows plain selectable text instead of a link. In an explorer, no link beats a
- * wrong link. Paths are verified against `src/router/index.js`; note the canonical
- * N3 transaction route is `/transaction-info/:txhash` (`/transaction` is a redirect
- * to the transaction list and must never be produced here).
+ * wrong link. Paths are verified against `src/router/index.js`.
+ *
+ * A bare 32-byte `0x…` hash (`hash32`) is deliberately `null` on every chain: a
+ * Neo N3 block hash and a transaction hash are shape-identical (`0x` + 64 hex), so
+ * a hash cannot be routed to the tx page without guessing, and half the time the
+ * guess lands on a not-found transaction when the value was actually a block hash.
+ * Per the module's own rule we render it as selectable text instead of guessing.
+ * `blockHeight` still links on a single-chain conversation (the pin disambiguates)
+ * but not on `both`, where the target network is unknown.
  *
  * @type {Readonly<Record<string, Readonly<Record<'n3'|'neox'|'both', string|null>>>>}
  */
@@ -48,8 +56,8 @@ export const ENTITY_ROUTES = Object.freeze({
     both: null,
   }),
   hash32: Object.freeze({
-    n3: "/transaction-info/{v}",
-    neox: "/x/tx/{v}",
+    n3: null,
+    neox: null,
     both: null,
   }),
   blockHeight: Object.freeze({
@@ -66,18 +74,26 @@ const FENCE_RE = /^ {0,3}```(.*)$/;
 const CLOSING_FENCE_RE = /^ {0,3}```\s*$/;
 const HEADING_RE = /^ {0,3}(#{1,3})\s+(.+)$/;
 const UNORDERED_RE = /^ {0,3}[-*]\s+(.*)$/;
-const ORDERED_RE = /^ {0,3}\d{1,9}[.)]\s+(.*)$/;
+// Group 1 is the marker value so the model's own numbering can be preserved on
+// the <ol>; group 2 is the item text.
+const ORDERED_RE = /^ {0,3}(\d{1,9})[.)]\s+(.*)$/;
 
 /**
  * Entity scanner. Order matters: the 64-hex form is tried before the 40-hex form
  * so a transaction hash is never mis-read as an address. The `block` keyword is
  * spelled out case-by-case instead of using the `i` flag, because N3 addresses
  * must keep their leading uppercase `N`.
+ *
+ * The N3 address alternative is restricted to the base58 alphabet (no `0 O I l`)
+ * and to exactly 34 characters, then every candidate is re-checked against its
+ * base58check trailer in `isCheckedN3Address` before it is linkified. Token names
+ * and NNS domains are attacker-controlled, so a 34-char run that merely *looks*
+ * like an address must not become a live `/account-profile` link.
  */
 const ENTITY_SOURCE = [
   "\\b0x[0-9a-fA-F]{64}\\b",
   "\\b0x[0-9a-fA-F]{40}\\b",
-  "\\bN[A-Za-z0-9]{33}\\b",
+  "\\bN[1-9A-HJ-NP-Za-km-z]{33}\\b",
   "\\b[Bb][Ll][Oo][Cc][Kk]\\s+#?\\d{1,9}\\b",
 ].join("|");
 
@@ -103,6 +119,19 @@ function classifyEntity(raw) {
 }
 
 /**
+ * Confirms an address-shaped run really is a Neo N3 address by validating its
+ * base58check trailer (version byte + double-SHA256 checksum). Base58 shape alone
+ * is not enough: an attacker can name a token with 34 base58 characters. Total —
+ * `addressToScriptHash` swallows its own errors and returns null on any bad input.
+ *
+ * @param {string} raw
+ * @returns {boolean}
+ */
+function isCheckedN3Address(raw) {
+  return addressToScriptHash(raw) !== null;
+}
+
+/**
  * Splits a literal text run into text and entity inline nodes.
  * Never runs over `code` nodes — code is always literal.
  *
@@ -122,7 +151,11 @@ function splitEntities(value) {
       out.push({ type: "text", value: value.slice(last, match.index) });
     }
     const kind = classifyEntity(raw);
-    if (kind === "blockHeight") {
+    if (kind === "n3Address" && !isCheckedN3Address(raw)) {
+      // Base58-shaped but the checksum fails: an attacker-set token name, not an
+      // address. Render it as plain text rather than a live account link.
+      out.push({ type: "text", value: raw });
+    } else if (kind === "blockHeight") {
       // Keep the "block #" prefix as prose and link only the number.
       const digits = raw.replace(/^\D+/, "");
       const prefix = raw.slice(0, raw.length - digits.length);
@@ -311,8 +344,15 @@ export function parseAgentMarkdown(text) {
       if (!list || list.ordered !== isOrdered) {
         flushList();
         list = { type: "list", ordered: isOrdered, items: [] };
+        if (isOrdered) {
+          // Preserve the first marker so "11. 12. 13." is not renumbered to
+          // "1. 2. 3." The renderer emits <ol start=n> when this is not 1.
+          const first = Number.parseInt(ordered[1], 10);
+          list.start = Number.isNaN(first) ? 1 : first;
+        }
       }
-      list.items.push(parseInlineContent((ordered ? ordered[1] : unordered[1]).trim()));
+      const itemText = ordered ? ordered[2] : unordered[1];
+      list.items.push(parseInlineContent(itemText.trim()));
       continue;
     }
 

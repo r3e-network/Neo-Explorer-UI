@@ -235,12 +235,14 @@ const retryLabel = computed(() => tf("agent.retry", "Try again"));
 
 const copyAnswerLabel = computed(() => tf("agent.copyAnswer", "Copy answer"));
 
+// Carry this row's message id so the panel retries/regenerates *this* turn and
+// not blindly the last one — every assistant row renders one of these buttons.
 function onRetry() {
-  emit("retry");
+  emit("retry", props.message?.id);
 }
 
 function onRegenerate() {
-  emit("regenerate");
+  emit("regenerate", props.message?.id);
 }
 </script>
 

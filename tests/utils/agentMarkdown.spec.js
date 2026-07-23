@@ -113,6 +113,27 @@ describe("parseAgentMarkdown — structure", () => {
     expect(blocks.map((b) => b.ordered)).toEqual([false, true]);
   });
 
+  it("preserves the model's ordered-list start instead of renumbering from 1", () => {
+    const [list] = parseAgentMarkdown("11. first\n12. second\n13. third");
+    expect(list.type).toBe("list");
+    expect(list.ordered).toBe(true);
+    expect(list.start).toBe(11);
+    expect(list.items.map(flattenText)).toEqual(["first", "second", "third"]);
+  });
+
+  it("keeps a standalone numbered line's own value (100.) rather than showing 1.", () => {
+    const [list] = parseAgentMarkdown("100. GAS was transferred to the treasury");
+    expect(list.type).toBe("list");
+    expect(list.start).toBe(100);
+    expect(list.items.map(flattenText)).toEqual(["GAS was transferred to the treasury"]);
+  });
+
+  it("leaves a 1-based ordered list with start 1", () => {
+    const [list] = parseAgentMarkdown("1. one\n2. two");
+    expect(list.start).toBe(1);
+    expect(list.items.map(flattenText)).toEqual(["one", "two"]);
+  });
+
   it("keeps a horizontal rule and emphasis-at-line-start out of list parsing", () => {
     const blocks = parseAgentMarkdown("---\n\n*emphasised* start");
     expect(blocks[0].type).toBe("paragraph");
@@ -280,6 +301,29 @@ describe("parseAgentMarkdown — entity detection", () => {
     const [block] = parseAgentMarkdown(`${short} and blocks 12 and X${N3_ADDRESS}`);
     expect(block.inline.some((n) => n.type === "entity")).toBe(false);
   });
+
+  it("only linkifies base58-alphabet, checksum-valid N3 addresses", () => {
+    // A genuine, checksum-valid address is still detected.
+    const [ok] = parseAgentMarkdown(N3_ADDRESS);
+    expect(ok.inline).toEqual([{ type: "entity", kind: "n3Address", value: N3_ADDRESS }]);
+
+    // 34 base58 characters but a broken base58check trailer: an attacker-set
+    // token name, not an address. It must never become an account link.
+    const forged = `${N3_ADDRESS.slice(0, -2)}XX`;
+    expect(forged).toHaveLength(34);
+    const [block] = parseAgentMarkdown(`You hold 1,000 ${forged} tokens`);
+    expect(block.inline.some((n) => n.type === "entity")).toBe(false);
+    expect(flattenText(block.inline)).toBe(`You hold 1,000 ${forged} tokens`);
+  });
+
+  it("does not even shape-match a run containing base58-illegal chars (0 O I l)", () => {
+    // Swapping two interior chars for `0` and `O` breaks the base58 alphabet, so
+    // the scanner never treats it as an address candidate.
+    const illegal = `N0O${N3_ADDRESS.slice(3)}`;
+    expect(illegal).toHaveLength(34);
+    const [block] = parseAgentMarkdown(illegal);
+    expect(block.inline).toEqual([{ type: "text", value: illegal }]);
+  });
 });
 
 describe("parseAgentMarkdown — totality (fuzz)", () => {
@@ -354,6 +398,46 @@ describe("parseAgentMarkdown — totality (fuzz)", () => {
       assertValidBlocks(blocks);
     }
   });
+
+  // { retry } absorbs a rare scheduler/GC spike under a loaded parallel runner;
+  // the budget below is deliberately loose so only a genuine super-linear
+  // regression — not load jitter — can fail it.
+  it("parses adversarial input in near-linear time (guards against ReDoS)", { retry: 2 }, () => {
+    // The not-throws / AST-shape assertions above cannot catch a super-linear
+    // regression — e.g. swapping an `indexOf` scan for a backtracking regex like
+    // /\*\*(.+?)\*\*/. A catastrophic backtrack on a 200k-char adversarial input
+    // takes seconds to minutes; a linear parse takes single-digit ms. A 1500ms
+    // ceiling on the best of three runs cleanly separates the two even on a
+    // heavily loaded machine, without the flaky n-vs-4n ratio timing that a
+    // parallel test runner cannot measure reliably.
+    const generators = [
+      (n) => "*".repeat(n),
+      (n) => "*a".repeat(Math.floor(n / 2)),
+      (n) => "**a**b".repeat(Math.floor(n / 6)),
+      (n) => "`a".repeat(Math.floor(n / 2)),
+      (n) => "a\r\n".repeat(Math.floor(n / 3)),
+    ];
+
+    // best-of-3: the minimum wall-clock is the sample least perturbed by GC and
+    // scheduler noise, which keeps the assertion stable on loaded CI machines.
+    const bestOf3 = (input) => {
+      let best = Infinity;
+      for (let r = 0; r < 3; r += 1) {
+        const t0 = performance.now();
+        parseAgentMarkdown(input);
+        best = Math.min(best, performance.now() - t0);
+      }
+      return best;
+    };
+
+    const N = 200000;
+    for (const gen of generators) {
+      const input = gen(N);
+      parseAgentMarkdown(input); // warm the JIT so the timed runs are steady-state
+      const best = bestOf3(input);
+      expect(best, `super-linear parse for ${JSON.stringify(gen(6))}`).toBeLessThan(1500);
+    }
+  });
 });
 
 describe("ENTITY_ROUTES", () => {
@@ -384,6 +468,14 @@ describe("ENTITY_ROUTES", () => {
     expect(ENTITY_ROUTES.blockHeight.both).toBeNull();
   });
 
+  it("never links a bare 32-byte hash — tx and block hashes are shape-identical", () => {
+    // A Neo N3 block hash and a transaction hash are both `0x` + 64 hex, so a bare
+    // hash cannot be routed to the tx page without guessing. No link on any chain.
+    expect(ENTITY_ROUTES.hash32.n3).toBeNull();
+    expect(ENTITY_ROUTES.hash32.neox).toBeNull();
+    expect(ENTITY_ROUTES.hash32.both).toBeNull();
+  });
+
   it("only produces internal, absolute, single-placeholder paths", () => {
     for (const row of Object.values(ENTITY_ROUTES)) {
       for (const template of Object.values(row)) {
@@ -412,8 +504,9 @@ describe("ENTITY_ROUTES", () => {
         produced.push(template.replace("{v}", SAMPLE_VALUES[kind]));
       }
     }
-    // 7 = n3Address(n3, both) + evmAddress(neox) + hash32(n3, neox) + blockHeight(n3, neox)
-    expect(produced).toHaveLength(7);
+    // 5 = n3Address(n3, both) + evmAddress(neox) + blockHeight(n3, neox).
+    // hash32 links nowhere (a bare hash is ambiguous between tx and block).
+    expect(produced).toHaveLength(5);
 
     const names = produced.map((path) => {
       const resolved = router.resolve(path);
@@ -429,8 +522,6 @@ describe("ENTITY_ROUTES", () => {
       new Set([
         "accountProfile",
         "xAddress",
-        "transactionDetail",
-        "xTxDetail",
         "blockDetail",
         "xBlockDetail",
       ]),
