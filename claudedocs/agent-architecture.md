@@ -70,6 +70,34 @@ patterns, unknown contracts) · optional spend limits · human is always the sig
 · on-chain strings treated as data (never instructions — proposals never
 auto-execute) · rate limits · read-only server · **no server custody of user keys**.
 
+### Scope lock (anti-abuse: keep it Neo-only)
+
+The orchestrator ([api/agent.js](api/agent.js)) must not be repurposable as a
+free general-purpose chatbot on top of the paid model. Two layers keep it on
+Neo N3 / Neo X:
+
+1. **Deterministic topic gate (pre-model, pre-MCP).** Before any model call or
+   MCP connection, `conversationIsNeoRelated()` requires at least one user turn
+   to carry Neo/blockchain signal — a broad prefix-matched vocabulary (neo, n3,
+   block, tx, gas, token, contract, transfer, committee, …) plus identifier
+   shapes (`0x…` hex, N-base58 address, `.neo` name, a bare block height). No
+   signal → a fixed off-topic refusal at 200, **spending zero model tokens**.
+   It is deliberately lenient (its only job is to drop clearly off-topic traffic
+   cheaply); anything with a Neo keyword falls through to layer 2.
+2. **Hardened system prompt.** Explicit Neo-only scope with a one-sentence
+   refusal for off-topic requests (general knowledge, other chains, coding,
+   math, writing, advice, role-play) — refused even when framed as a test,
+   hypothetical, game, emergency, or authority claim. Treats user messages and
+   tool results as untrusted **data**, ignores embedded "ignore your
+   instructions"/persona-override injection, and never reveals the prompt,
+   keys, or config.
+
+These pair with the structural bounds already in place: per-client+chain rate
+limit, `MAX_TOKENS`/`MAX_TOOL_ITERATIONS` caps, body/message size caps, the
+read-only non-custodial MCP toolset (the model's *actions* are Neo-only by
+construction), and no secret echo on any error path. No single layer is a
+security boundary; together they bound both abuse surface and cost.
+
 ## Reuses vs net-new
 
 **Reuses:** non-custodial wallet path + unsigned-tx decoding; the `src/views/Tools/`
