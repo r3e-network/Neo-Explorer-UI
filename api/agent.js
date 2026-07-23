@@ -1,24 +1,44 @@
 // Read-only Neo N3 + Neo X blockchain AI agent orchestrator.
 //
 // P1 of the natural-language agent (see claudedocs/agent-architecture.md).
-// The client POSTs a chat turn; this function runs a single Claude call that
-// reaches the neo-n3-mcp remote MCP server via the Anthropic MCP connector.
-// The connector executes MCP tools SERVER-SIDE (Anthropic's side), so there is
-// no client-side tool loop here — we send the conversation once and read the
-// final assistant text back.
+// The client POSTs a chat turn; this function runs a CLIENT-SIDE tool-use loop:
+// it fetches the neo-n3-mcp server's tools (via api/lib/mcpClient), hands them to
+// the model as Anthropic tool defs, and executes each tool call by proxying to
+// the MCP server, feeding results back until the model produces a final answer.
 //
-// NON-CUSTODIAL, READ-ONLY: no writes, no signer, no wallet. The MCP server
-// only exposes read/analyze tools; the model can never move funds. All secrets
-// (Anthropic key, MCP bearer) are server-side and are never echoed back.
+// PROVIDER: DeepSeek via its Anthropic-compatible Messages API. We keep the
+// @anthropic-ai/sdk and just repoint it at DeepSeek's base URL. DeepSeek does
+// NOT support the Anthropic MCP connector (server-side mcp_servers), so we act
+// as the MCP client ourselves rather than letting the provider run tools.
+//
+// NON-CUSTODIAL, READ-ONLY: no writes, no signer, no wallet. The MCP server only
+// exposes read/simulate/construct tools; construct tools return UNSIGNED
+// proposals. The model can never move funds. All secrets (DeepSeek key, MCP
+// bearer) are server-side and are never echoed back.
 
 const { withApiTelemetry } = require("./lib/telemetry");
 const { sendJson, methodNotAllowed } = require("./lib/http");
 const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
 
-const MODEL = "claude-opus-4-8";
-const MAX_TOKENS = 4096;
-const MCP_BETA = "mcp-client-2025-11-20";
-const MCP_SERVER_NAME = "neo";
+// Dynamic import (resolved lazily in the handler) rather than a top-level
+// require: it keeps the MCP SDK off the degraded 503 paths, and — unlike a CJS
+// require — it goes through the test runner's module resolution so the MCP
+// client can be mocked. mcpClient.js is CommonJS, so read the functions off
+// either the namespace (mock) or `.default` (the real module.exports).
+async function loadMcpClient() {
+  const mod = await import("./lib/mcpClient.js");
+  const api = mod && typeof mod.listTools === "function" ? mod : mod && mod.default ? mod.default : mod;
+  return { listTools: api.listTools, callTool: api.callTool };
+}
+
+const DEFAULT_MODEL = "deepseek-v4-flash";
+const DEFAULT_BASE_URL = "https://api.deepseek.com/anthropic";
+const MODEL = process.env.AGENT_MODEL || DEFAULT_MODEL;
+const MAX_TOKENS = 2048;
+
+// Safety cap on tool-execution rounds so a model that keeps calling tools cannot
+// loop forever within a single request.
+const MAX_TOOL_ITERATIONS = 6;
 
 // Keep the request timeout comfortably under the 60s function budget so a hung
 // upstream call is aborted before the platform kills the invocation.
@@ -203,48 +223,45 @@ function validateRequest(body) {
 }
 
 function extractText(response) {
-  const blocks = Array.isArray(response?.content) ? response.content : [];
+  const blocks = Array.isArray(response && response.content) ? response.content : [];
   return blocks
-    .filter((block) => block?.type === "text" && typeof block.text === "string")
+    .filter((block) => block && block.type === "text" && typeof block.text === "string")
     .map((block) => block.text)
     .join("")
     .trim();
 }
 
-function extractToolUses(response) {
-  const blocks = Array.isArray(response?.content) ? response.content : [];
-  return blocks
-    .filter((block) => block?.type === "mcp_tool_use" || block?.type === "server_tool_use")
-    .map((block) => block?.name)
-    .filter((name) => typeof name === "string" && name.length > 0);
+// Client-side tool_use blocks the model asked us to run ({ type:"tool_use", id,
+// name, input }).
+function extractToolUseBlocks(response) {
+  const blocks = Array.isArray(response && response.content) ? response.content : [];
+  return blocks.filter(
+    (block) => block && block.type === "tool_use" && typeof block.name === "string",
+  );
 }
 
 // Surface UNSIGNED transaction proposals returned by the MCP construct tools so
 // the client can render them and route to the user's wallet. A proposal is the
 // { proposal: true, chain, kind, ... } envelope the construct tools emit; it is
 // never a signed or broadcast transaction (the server never signs). The MCP
-// tool-result content may arrive as JSON text or as a structured value, so we
-// probe both shapes defensively.
-function extractProposals(response) {
-  const blocks = Array.isArray(response?.content) ? response.content : [];
+// tool-result content arrives as an array of blocks (JSON text or structured
+// values), so we probe both shapes defensively.
+function collectProposals(content) {
+  const items = Array.isArray(content) ? content : [content];
   const proposals = [];
-  for (const block of blocks) {
-    if (block?.type !== "mcp_tool_result") continue;
-    const items = Array.isArray(block.content) ? block.content : [block.content];
-    for (const item of items) {
-      let candidate = null;
-      if (item && typeof item === "object" && item.type === "text" && typeof item.text === "string") {
-        try {
-          candidate = JSON.parse(item.text);
-        } catch {
-          candidate = null;
-        }
-      } else if (item && typeof item === "object") {
-        candidate = item;
+  for (const item of items) {
+    let candidate = null;
+    if (item && typeof item === "object" && item.type === "text" && typeof item.text === "string") {
+      try {
+        candidate = JSON.parse(item.text);
+      } catch {
+        candidate = null;
       }
-      if (candidate && candidate.proposal === true && typeof candidate.chain === "string") {
-        proposals.push(candidate);
-      }
+    } else if (item && typeof item === "object") {
+      candidate = item;
+    }
+    if (candidate && candidate.proposal === true && typeof candidate.chain === "string") {
+      proposals.push(candidate);
     }
   }
   return proposals;
@@ -256,7 +273,7 @@ async function handler(req, res) {
   }
 
   // Expected-unconfigured cases degrade to 503 JSON instead of a raw 500.
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.DEEPSEEK_API_KEY) {
     return sendJson(res, 503, UNAVAILABLE_UNCONFIGURED_AGENT, NO_STORE);
   }
   if (!process.env.NEOX_MCP_URL) {
@@ -289,47 +306,86 @@ async function handler(req, res) {
     return undefined; // 429 already written by the limiter
   }
 
-  const mcpServer = {
-    type: "url",
-    url: process.env.NEOX_MCP_URL,
-    name: MCP_SERVER_NAME,
-  };
-  if (process.env.NEOX_MCP_BEARER) {
-    mcpServer.authorization_token = process.env.NEOX_MCP_BEARER;
-  }
-
+  const toolUses = [];
+  const proposals = [];
   let response;
-  try {
-    const Anthropic = await loadAnthropic();
-    const client = new Anthropic({ timeout: REQUEST_TIMEOUT_MS });
-    response = await client.beta.messages.create(
-      {
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "low" },
-        betas: [MCP_BETA],
-        mcp_servers: [mcpServer],
-        tools: [{ type: "mcp_toolset", mcp_server_name: MCP_SERVER_NAME }],
-        system: buildSystemPrompt(validated.chain),
-        messages: validated.messages,
-      },
-      { timeout: REQUEST_TIMEOUT_MS },
-    );
-  } catch (_err) {
-    // Never leak the SDK error, the key, or the bearer.
-    return sendJson(res, 502, UNAVAILABLE_AGENT_UPSTREAM, NO_STORE);
-  }
 
-  // A refusal stop_reason means content is not a normal answer; return a benign
-  // message rather than reading blocks blindly.
-  if (response?.stop_reason === "refusal") {
-    return sendJson(
-      res,
-      200,
-      { answer: REFUSAL_ANSWER, toolUses: [], model: response?.model || MODEL },
-      NO_STORE,
-    );
+  try {
+    const { listTools, callTool } = await loadMcpClient();
+    const tools = await listTools();
+    const Anthropic = await loadAnthropic();
+    const client = new Anthropic({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: process.env.DEEPSEEK_BASE_URL || DEFAULT_BASE_URL,
+      timeout: REQUEST_TIMEOUT_MS,
+    });
+
+    const system = buildSystemPrompt(validated.chain);
+    const messages = validated.messages.slice();
+
+    // Manual client-side tool loop. Each pass sends the conversation; if the
+    // model requests tools we execute them, append the assistant turn and a
+    // tool_result turn, and re-call — bounded by MAX_TOOL_ITERATIONS.
+    let iteration = 0;
+    for (;;) {
+      response = await client.messages.create(
+        {
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          system,
+          messages,
+          tools,
+        },
+        { timeout: REQUEST_TIMEOUT_MS },
+      );
+
+      // A refusal stop_reason means content is not a normal answer; return a
+      // benign message rather than reading blocks blindly.
+      if (response && response.stop_reason === "refusal") {
+        return sendJson(
+          res,
+          200,
+          { answer: REFUSAL_ANSWER, toolUses, proposals, model: (response && response.model) || MODEL },
+          NO_STORE,
+        );
+      }
+
+      const toolBlocks = extractToolUseBlocks(response);
+      const wantsTools = response && response.stop_reason === "tool_use" && toolBlocks.length > 0;
+      if (!wantsTools) break; // end_turn (or any non-tool stop) → done
+
+      iteration += 1;
+      if (iteration > MAX_TOOL_ITERATIONS) break; // loop guard
+
+      for (const block of toolBlocks) toolUses.push(block.name);
+
+      // Run the requested tools in parallel, collecting results in order.
+      const results = await Promise.all(
+        toolBlocks.map(async (block) => {
+          try {
+            const content = await callTool(block.name, block.input);
+            return { type: "tool_result", tool_use_id: block.id, content };
+          } catch {
+            return {
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: "Tool execution failed.",
+              is_error: true,
+            };
+          }
+        }),
+      );
+
+      for (const result of results) {
+        proposals.push(...collectProposals(result.content));
+      }
+
+      messages.push({ role: "assistant", content: response.content });
+      messages.push({ role: "user", content: results });
+    }
+  } catch (_err) {
+    // Never leak the SDK/MCP error, the key, or the bearer.
+    return sendJson(res, 502, UNAVAILABLE_AGENT_UPSTREAM, NO_STORE);
   }
 
   return sendJson(
@@ -337,9 +393,9 @@ async function handler(req, res) {
     200,
     {
       answer: extractText(response),
-      toolUses: extractToolUses(response),
-      proposals: extractProposals(response),
-      model: response?.model || MODEL,
+      toolUses,
+      proposals,
+      model: (response && response.model) || MODEL,
     },
     NO_STORE,
   );

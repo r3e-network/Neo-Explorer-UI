@@ -1,17 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Shared handle to the mocked create() so each test can control its behavior.
-const createMock = vi.fn();
+// vi.hoisted so the mock factories below (which vitest hoists above everything)
+// reference the SAME stable handles the tests drive — bare `const x = vi.fn()`
+// would leave the factory referencing an uninitialised var and the mock would
+// silently not register, letting the real SDK / MCP transport run.
+const { createMock, listToolsMock, callToolMock, clientOptions } = vi.hoisted(() => ({
+  createMock: vi.fn(),
+  listToolsMock: vi.fn(),
+  callToolMock: vi.fn(),
+  clientOptions: { value: undefined },
+}));
 
 vi.mock("@anthropic-ai/sdk", () => {
   class Anthropic {
     constructor(options) {
-      this.options = options;
-      this.beta = { messages: { create: createMock } };
+      clientOptions.value = options;
+      this.messages = { create: createMock };
     }
   }
   return { default: Anthropic };
 });
+
+// Mock the MCP client so no real transport/connection is attempted.
+vi.mock("../../api/lib/mcpClient.js", () => ({
+  listTools: listToolsMock,
+  callTool: callToolMock,
+}));
 
 function createMockRes() {
   return {
@@ -57,7 +71,16 @@ describe("api/agent", () => {
   beforeEach(() => {
     vi.resetModules();
     createMock.mockReset();
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    listToolsMock.mockReset();
+    callToolMock.mockReset();
+    clientOptions.value = undefined;
+    // A sensible default tool list; individual tests override as needed.
+    listToolsMock.mockResolvedValue([
+      { name: "get_block_count", description: "N3 height", input_schema: { type: "object", properties: {} } },
+    ]);
+    vi.stubEnv("DEEPSEEK_API_KEY", "");
+    vi.stubEnv("DEEPSEEK_BASE_URL", "");
+    vi.stubEnv("AGENT_MODEL", "");
     vi.stubEnv("NEOX_MCP_URL", "");
     vi.stubEnv("NEOX_MCP_BEARER", "");
   });
@@ -67,7 +90,7 @@ describe("api/agent", () => {
   });
 
   it("rejects non-POST methods with 405", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     const handler = await loadHandler();
     const res = createMockRes();
@@ -78,7 +101,7 @@ describe("api/agent", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it("degrades to 503 agent_unconfigured when the API key is missing", async () => {
+  it("degrades to 503 agent_unconfigured when the DeepSeek key is missing", async () => {
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     const handler = await loadHandler();
     const res = createMockRes();
@@ -88,10 +111,11 @@ describe("api/agent", () => {
     expect(res.statusCode).toBe(503);
     expect(res.getJson()).toEqual({ unavailable: true, reason: "agent_unconfigured" });
     expect(createMock).not.toHaveBeenCalled();
+    expect(listToolsMock).not.toHaveBeenCalled();
   });
 
   it("degrades to 503 mcp_unconfigured when the MCP URL is missing", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     const handler = await loadHandler();
     const res = createMockRes();
 
@@ -102,19 +126,27 @@ describe("api/agent", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it("returns 200 with the concatenated answer, tool uses, and model", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+  it("runs the tool loop: executes callTool for a tool_use block and returns the final answer", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     vi.stubEnv("NEOX_MCP_BEARER", "bearer-secret");
-    createMock.mockResolvedValueOnce({
-      model: "claude-opus-4-8",
-      stop_reason: "end_turn",
-      content: [
-        { type: "mcp_tool_use", name: "get_block_count" },
-        { type: "text", text: "The current N3 block height is " },
-        { type: "text", text: "12345." },
-      ],
-    });
+
+    // First create() → the model calls a tool; second → final answer.
+    createMock
+      .mockResolvedValueOnce({
+        model: "deepseek-v4-flash",
+        stop_reason: "tool_use",
+        content: [{ type: "tool_use", id: "tu_1", name: "get_block_count", input: {} }],
+      })
+      .mockResolvedValueOnce({
+        model: "deepseek-v4-flash",
+        stop_reason: "end_turn",
+        content: [
+          { type: "text", text: "The current N3 block height is " },
+          { type: "text", text: "12345." },
+        ],
+      });
+    callToolMock.mockResolvedValueOnce([{ type: "text", text: "12345" }]);
 
     const handler = await loadHandler();
     const res = createMockRes();
@@ -125,30 +157,45 @@ describe("api/agent", () => {
       answer: "The current N3 block height is 12345.",
       toolUses: ["get_block_count"],
       proposals: [],
-      model: "claude-opus-4-8",
+      model: "deepseek-v4-flash",
     });
 
-    // MCP connector request shape.
-    expect(createMock).toHaveBeenCalledTimes(1);
+    // The MCP tool was actually invoked with the model's block name + input.
+    expect(callToolMock).toHaveBeenCalledTimes(1);
+    expect(callToolMock).toHaveBeenCalledWith("get_block_count", {});
+
+    // Two create() calls: initial + post-tool.
+    expect(createMock).toHaveBeenCalledTimes(2);
+
+    // DeepSeek client + request shape.
+    expect(clientOptions.value.apiKey).toBe("sk-test");
+    expect(clientOptions.value.baseURL).toBe("https://api.deepseek.com/anthropic");
+
     const [payload] = createMock.mock.calls[0];
-    expect(payload.model).toBe("claude-opus-4-8");
-    expect(payload.betas).toEqual(["mcp-client-2025-11-20"]);
-    expect(payload.tools).toEqual([{ type: "mcp_toolset", mcp_server_name: "neo" }]);
-    expect(payload.mcp_servers).toEqual([
+    expect(payload.model).toBe("deepseek-v4-flash");
+    expect(payload.tools).toEqual([
+      { name: "get_block_count", description: "N3 height", input_schema: { type: "object", properties: {} } },
+    ]);
+    // No Anthropic-only / MCP-connector fields leak into the DeepSeek request.
+    expect(payload.betas).toBeUndefined();
+    expect(payload.mcp_servers).toBeUndefined();
+    expect(payload.output_config).toBeUndefined();
+    expect(payload.thinking).toBeUndefined();
+
+    // The second call carried the appended assistant + tool_result turns.
+    const [secondPayload] = createMock.mock.calls[1];
+    expect(secondPayload.messages).toEqual([
+      { role: "user", content: "What is the N3 block height?" },
+      { role: "assistant", content: [{ type: "tool_use", id: "tu_1", name: "get_block_count", input: {} }] },
       {
-        type: "url",
-        url: "https://mcp.example/neo",
-        name: "neo",
-        authorization_token: "bearer-secret",
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "tu_1", content: [{ type: "text", text: "12345" }] }],
       },
     ]);
-    expect(payload.messages).toEqual([{ role: "user", content: "What is the N3 block height?" }]);
-    expect(payload.thinking).toEqual({ type: "adaptive" });
-    expect(payload.output_config).toEqual({ effort: "low" });
   });
 
-  it("surfaces unsigned transaction proposals from MCP tool results", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+  it("surfaces unsigned transaction proposals from MCP construct tool results", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     const proposal = {
       proposal: true,
@@ -157,16 +204,22 @@ describe("api/agent", () => {
       tx: { from: "0xabc", to: "0xdef", value: "0x1", data: "0x", chainId: "0xba93", gas: "0x5208" },
       summary: "Transfer 1 wei",
     };
-    createMock.mockResolvedValueOnce({
-      model: "claude-opus-4-8",
-      stop_reason: "end_turn",
-      content: [
-        { type: "mcp_tool_use", name: "x_build_transfer" },
-        // MCP tool results arrive as JSON text inside a content array.
-        { type: "mcp_tool_result", content: [{ type: "text", text: JSON.stringify(proposal) }] },
-        { type: "text", text: "Here's a transfer for you to review and sign." },
-      ],
-    });
+    listToolsMock.mockResolvedValue([
+      { name: "x_build_transfer", description: "build", input_schema: { type: "object", properties: {} } },
+    ]);
+    createMock
+      .mockResolvedValueOnce({
+        model: "deepseek-v4-flash",
+        stop_reason: "tool_use",
+        content: [{ type: "tool_use", id: "tu_x", name: "x_build_transfer", input: { to: "0xdef" } }],
+      })
+      .mockResolvedValueOnce({
+        model: "deepseek-v4-flash",
+        stop_reason: "end_turn",
+        content: [{ type: "text", text: "Here's a transfer for you to review and sign." }],
+      });
+    // MCP construct tool returns the proposal envelope as JSON text.
+    callToolMock.mockResolvedValueOnce([{ type: "text", text: JSON.stringify(proposal) }]);
 
     const handler = await loadHandler();
     const res = createMockRes();
@@ -182,7 +235,7 @@ describe("api/agent", () => {
   });
 
   it("rejects an oversized body with 413", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     const handler = await loadHandler();
     const res = createMockRes();
@@ -195,7 +248,7 @@ describe("api/agent", () => {
   });
 
   it("rejects an empty/malformed body with 400", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     const handler = await loadHandler();
     const res = createMockRes();
@@ -207,7 +260,7 @@ describe("api/agent", () => {
   });
 
   it("degrades to 502 without leaking secrets when the SDK throws", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-secret-key");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-secret-key");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     vi.stubEnv("NEOX_MCP_BEARER", "bearer-secret");
     createMock.mockRejectedValueOnce(new Error("boom sk-secret-key bearer-secret"));
@@ -224,10 +277,10 @@ describe("api/agent", () => {
   });
 
   it("returns a benign answer on a refusal stop_reason instead of crashing", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-test");
+    vi.stubEnv("DEEPSEEK_API_KEY", "sk-test");
     vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
     createMock.mockResolvedValueOnce({
-      model: "claude-opus-4-8",
+      model: "deepseek-v4-flash",
       stop_reason: "refusal",
       content: [],
     });
@@ -238,9 +291,33 @@ describe("api/agent", () => {
 
     expect(res.statusCode).toBe(200);
     const json = res.getJson();
-    expect(json.model).toBe("claude-opus-4-8");
+    expect(json.model).toBe("deepseek-v4-flash");
     expect(json.toolUses).toEqual([]);
+    expect(json.proposals).toEqual([]);
     expect(typeof json.answer).toBe("string");
     expect(json.answer.length).toBeGreaterThan(0);
+    expect(callToolMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("api/lib/mcpClient toAnthropicToolDef", () => {
+  it("converts an MCP tool descriptor to an Anthropic tool def", async () => {
+    // Import the real module (bypassing the suite-level mock) for a unit check.
+    const mod = await vi.importActual("../../api/lib/mcpClient.js");
+    const def = mod.toAnthropicToolDef({
+      name: "get_block_count",
+      description: "Return the N3 block height",
+      inputSchema: { type: "object", properties: { chain: { type: "string" } } },
+    });
+    expect(def).toEqual({
+      name: "get_block_count",
+      description: "Return the N3 block height",
+      input_schema: { type: "object", properties: { chain: { type: "string" } } },
+    });
+
+    // Missing schema/description degrade to a safe default object schema.
+    const bare = mod.toAnthropicToolDef({ name: "ping" });
+    expect(bare).toEqual({ name: "ping", input_schema: { type: "object", properties: {} } });
+    expect(bare.description).toBeUndefined();
   });
 });
