@@ -34,6 +34,8 @@ describe("agentService.askAgent", () => {
       answer: "Here is your balance.",
       toolUses: ["get_balance"],
       proposals: [proposal],
+      // Passed through so the tool trail can attribute the answer to a model.
+      model: "claude",
     });
   });
 

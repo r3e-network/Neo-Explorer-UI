@@ -49,7 +49,7 @@ function normalizeReason(payload) {
  * @param {string} [params.query] - Single-shot question (used when no messages).
  * @param {"n3"|"neox"|"both"} [params.chain] - Target chain scope.
  * @param {AbortSignal} [params.signal] - Cancels the in-flight request.
- * @returns {Promise<{answer:string, toolUses:string[], proposals:Array}
+ * @returns {Promise<{answer:string, toolUses:string[], proposals:Array, model:string}
  *   | {unavailable:true, reason:string}>}
  * @throws {AgentServiceError} on network faults or unexpected responses.
  */
@@ -99,6 +99,9 @@ export async function askAgent({ messages, query, chain, signal } = {}) {
     answer: typeof payload.answer === "string" ? payload.answer : "",
     toolUses: Array.isArray(payload.toolUses) ? payload.toolUses : [],
     proposals: Array.isArray(payload.proposals) ? payload.proposals : [],
+    // The orchestrator always reports which model answered (api/agent.js:556-558).
+    // Surfaced in the tool-provenance trail; "" when the backend omits it.
+    model: typeof payload.model === "string" ? payload.model : "",
   };
 }
 

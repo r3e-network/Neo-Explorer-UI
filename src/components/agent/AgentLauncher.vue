@@ -5,9 +5,10 @@
       class="agent-fab"
       :class="{ 'agent-fab-open': open }"
       :aria-label="open ? tf('agent.launcherClose', 'Close AI assistant') : tf('agent.launcherOpen', 'Open AI assistant')"
+      :title="shortcutTitle"
       :aria-expanded="open"
       aria-haspopup="dialog"
-      aria-controls="agent-panel"
+      :aria-controls="open ? 'agent-panel' : undefined"
       @click="toggle"
     >
       <svg v-if="!open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
@@ -23,13 +24,18 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AgentPanel from "@/components/agent/AgentPanel.vue";
+import { useAgentHotkey } from "@/composables/useAgentHotkey";
 
 const { t } = useI18n();
-const tf = (key, fallback) => {
-  const value = t(key);
+// `params` is optional and only used by interpolated messages: vue-i18n resolves
+// an unsupplied named placeholder to an empty string, so `agent.shortcutLabel`
+// would render "Shortcut: " if the value were not passed through here. The
+// English fallback keeps the literal `{keys}` marker for the .replace() below.
+const tf = (key, fallback, params) => {
+  const value = params ? t(key, params) : t(key);
   return value === key ? fallback : value;
 };
 
@@ -41,6 +47,15 @@ function toggle() {
 function close() {
   open.value = false;
 }
+
+const { shortcutLabel } = useAgentHotkey(toggle);
+
+const shortcutTitle = computed(() =>
+  tf("agent.shortcutLabel", "Shortcut: {keys}", { keys: shortcutLabel.value }).replace(
+    "{keys}",
+    shortcutLabel.value,
+  ),
+);
 </script>
 
 <style scoped>
@@ -48,8 +63,8 @@ function close() {
    (XBridgeHintPill, z-index 60) and the bottom-right back-to-top button. */
 .agent-fab {
   position: fixed;
-  left: 1rem;
-  bottom: 1rem;
+  left: calc(1rem + env(safe-area-inset-left));
+  bottom: calc(1rem + env(safe-area-inset-bottom));
   z-index: 60;
   display: inline-flex;
   align-items: center;
@@ -67,16 +82,43 @@ function close() {
 .agent-fab:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--link) 75%, transparent);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24), 0 0 18px rgba(0, 229, 153, 0.25);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.24),
+    0 0 18px color-mix(in srgb, var(--link) 25%, transparent);
 }
 
+/* The focus ring is added to the elevation shadow, never swapped for it —
+   otherwise the button visibly flattens the moment it takes focus. */
 .agent-fab:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--ring-focus, rgba(0, 229, 153, 0.35));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 0 0 3px var(--ring-focus);
 }
 
 .agent-fab-open {
   color: var(--text-mid);
+}
+
+.dark .agent-fab {
+  border-color: color-mix(in srgb, var(--link) 38%, transparent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(173, 193, 221, 0.05);
+}
+
+.dark .agent-fab:hover {
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.42),
+    0 0 18px color-mix(in srgb, var(--link) 25%, transparent);
+}
+
+.dark .agent-fab:focus-visible {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.34), 0 0 0 3px var(--ring-focus);
+}
+
+/* Below md the drawer is full-bleed and already covers this spot, so the
+   X-icon swap would be unreachable chrome. Hide it instead. */
+@media (max-width: 767px) {
+  .agent-fab-open {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

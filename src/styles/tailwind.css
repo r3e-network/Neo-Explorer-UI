@@ -28,6 +28,10 @@
     --icon-bg-green: rgba(15, 159, 114, 0.15);
     --icon-bg-orange: rgba(234, 138, 30, 0.15);
     --icon-bg-purple: rgba(139, 92, 246, 0.15);
+    /* Chain identity accents — used by chain dots/chips so the hex lives in
+       exactly one place. Neo N3 keeps the brand green; Neo X is violet. */
+    --chain-n3: #00e599;
+    --chain-neox: #7c5cff;
   }
 
   .dark {
@@ -53,6 +57,10 @@
     --icon-bg-green: rgba(0, 229, 153, 0.15);
     --icon-bg-orange: rgba(255, 184, 77, 0.15);
     --icon-bg-purple: rgba(167, 139, 250, 0.15);
+    /* Chain identity accents — Neo X lightens on dark so the violet keeps
+       contrast against the deep-navy surfaces. */
+    --chain-n3: #00e599;
+    --chain-neox: #a78bfa;
   }
 
   html {
@@ -1205,5 +1213,34 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The global clamp above only shortens the duration, which turns a spinner
+     into a rapid strobe rather than stopping it. Stop it outright so no
+     component has to patch `.animate-spin` locally. */
+  .animate-spin {
+    animation: none !important;
+  }
+}
+
+/* ---------- Toast / agent drawer reconciliation ----------
+   vue-toastification renders its container at the body level (z-9999,
+   top-right, 600px wide above 600px viewport / 100vw below), so it sits over
+   the agent drawer header at every breakpoint. While the drawer is open we
+   slide the container clear of the 420px panel on desktop and drop it below
+   the drawer header on mobile. Intentionally outside every @layer so it wins
+   against the vendor stylesheet without !important.
+   `body.agent-drawer-open` is toggled by AgentPanel. */
+/* Only above md: below 768px the drawer is full-bleed, so shifting the 600px
+   toast container left of a 420px gutter would push it partly off-screen. */
+@media (min-width: 768px) {
+  body.agent-drawer-open .Vue-Toastification__container.top-right {
+    right: calc(1rem + 420px);
+  }
+}
+
+@media (max-width: 767px) {
+  body.agent-drawer-open .Vue-Toastification__container {
+    top: 4.25rem;
   }
 }
