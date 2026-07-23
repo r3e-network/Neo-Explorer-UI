@@ -10,6 +10,7 @@
         </router-view>
       </main>
       <AppFooter />
+      <AgentLauncher />
     </div>
 
     <transition name="fade">
@@ -98,6 +99,7 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import AppHeader from "./AppHeader.vue";
 import AppFooter from "./AppFooter.vue";
+import AgentLauncher from "@/components/agent/AgentLauncher.vue";
 import {
   NETWORK_CHANGE_EVENT,
   getCurrentEnv,
