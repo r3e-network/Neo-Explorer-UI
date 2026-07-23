@@ -33,6 +33,154 @@ vi.mock("@/utils/proposalSigner", () => {
   };
 });
 
+// The panel drives the durable conversation library through
+// useAgentConversations(). jsdom ships no IndexedDB, and the real composable is a
+// module singleton whose debounced writes would leak timers across tests, so it
+// is mocked with a controllable, non-debounced in-memory fake. Crucially the
+// fake still (de)serializes through the store's REAL canonical helpers, so the
+// "nothing signable is ever stored" guarantee is exercised end to end rather
+// than faked. `convStore.api` exposes the live refs, spies, and seed/reset hooks
+// to the tests. AgentConversationList reads the same singleton, so the overlay
+// renders from this fake too.
+const convStore = vi.hoisted(() => ({ api: null }));
+
+vi.mock("@/composables/useAgentConversations", async () => {
+  const { ref } = await import("vue");
+  const { serializeMessage, deserializeMessage } = await import(
+    "@/services/agentConversationStore"
+  );
+
+  const conversations = ref([]);
+  const activeId = ref(null);
+  const persistent = ref(true);
+  const records = new Map();
+  let clock = 0;
+  let seq = 0;
+  const stamp = () => Date.now() + ++clock;
+
+  const isRole = (m) =>
+    Boolean(m) && (m.role === "user" || m.role === "assistant" || m.role === "system");
+  const cloneOf = (v) => JSON.parse(JSON.stringify(v));
+  const firstUser = (list) => {
+    const hit = list.find(
+      (m) => m && m.role === "user" && typeof m.content === "string" && m.content.trim(),
+    );
+    return hit ? hit.content.trim() : "";
+  };
+  const projectMeta = (r) => ({
+    id: r.id,
+    title: r.title,
+    chain: r.chain,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    messageCount: r.messages.length,
+    preview: firstUser(r.messages),
+  });
+  const refresh = () => {
+    conversations.value = [...records.values()]
+      .map(projectMeta)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  };
+  const upsert = ({ id, title, chain, chainExplicit, messages }) => {
+    const cid = id || `conv-${++seq}`;
+    const stored = (Array.isArray(messages) ? messages : [])
+      .filter(isRole)
+      .map((m) => serializeMessage(cloneOf(m)));
+    const existing = records.get(cid);
+    records.set(cid, {
+      id: cid,
+      title: title != null ? title : existing?.title || firstUser(stored).slice(0, 60),
+      chain: chain || "n3",
+      chainExplicit: chainExplicit === true,
+      createdAt: existing?.createdAt || stamp(),
+      updatedAt: stamp(),
+      messages: stored,
+    });
+    refresh();
+    return cid;
+  };
+
+  const init = vi.fn(async () => {
+    refresh();
+  });
+  const refreshFn = vi.fn(async () => {
+    refresh();
+  });
+  const create = vi.fn(() => {
+    const id = `conv-${++seq}`;
+    activeId.value = id;
+    return { id };
+  });
+  const open = vi.fn(async (id) => {
+    const r = records.get(id);
+    if (!r) return null;
+    activeId.value = id;
+    return {
+      messages: r.messages.map((m) => deserializeMessage(cloneOf(m))),
+      chain: r.chain,
+      chainExplicit: r.chainExplicit,
+    };
+  });
+  const saveActive = vi.fn(async (payload) => {
+    upsert(payload);
+  });
+  const rename = vi.fn(async (id, title) => {
+    const r = records.get(id);
+    if (!r) return;
+    r.title = title;
+    r.updatedAt = stamp();
+    refresh();
+  });
+  const remove = vi.fn(async (id) => {
+    records.delete(id);
+    if (activeId.value === id) activeId.value = null;
+    refresh();
+  });
+  const exportMarkdown = vi.fn(async (id) => {
+    const r = records.get(id);
+    return r ? `# ${r.title}` : "";
+  });
+
+  const api = {
+    conversations,
+    activeId,
+    persistent,
+    init,
+    refresh: refreshFn,
+    create,
+    open,
+    saveActive,
+    rename,
+    remove,
+    exportMarkdown,
+    __records: records,
+    __seed(list) {
+      for (const r of list) {
+        upsert({
+          id: r.id,
+          title: r.title != null ? r.title : undefined,
+          chain: r.chain,
+          chainExplicit: r.chainExplicit,
+          messages: r.messages,
+        });
+      }
+    },
+    __reset() {
+      records.clear();
+      conversations.value = [];
+      activeId.value = null;
+      persistent.value = true;
+      clock = 0;
+      seq = 0;
+      for (const fn of [init, refreshFn, create, open, saveActive, rename, remove, exportMarkdown]) {
+        fn.mockClear();
+      }
+    },
+  };
+  convStore.api = api;
+  return { useAgentConversations: () => api, default: () => api };
+});
+
 import AgentPanel from "@/components/agent/AgentPanel.vue";
 import AgentProposalCard from "@/components/agent/AgentProposalCard.vue";
 import panelSource from "@/components/agent/AgentPanel.vue?raw";
@@ -121,6 +269,7 @@ beforeEach(async () => {
   clipboardMock.copyTextToClipboard.mockClear();
   clipboardMock.copyTextToClipboard.mockResolvedValue(true);
   signerMock.signProposal.mockReset();
+  convStore.api.__reset();
   window.sessionStorage.clear();
   document.body.className = "";
   setViewport(true);
@@ -779,10 +928,10 @@ describe("AgentPanel — suggestions", () => {
   });
 });
 
-/* -------------------------------------------------------- persistence ---- */
+/* --------------------------------------------------- conversation library - */
 
-describe("AgentPanel — session persistence", () => {
-  it("persists to sessionStorage and never writes a signable payload", async () => {
+describe("AgentPanel — conversation library persistence", () => {
+  it("persists the active conversation through the store, never ambient storage", async () => {
     serviceMock.askAgent.mockResolvedValue({
       answer: "Here is a transfer.",
       toolUses: ["get_block"],
@@ -792,48 +941,59 @@ describe("AgentPanel — session persistence", () => {
     await mountPanel({ open: true });
     await ask("prepare a transfer");
 
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    expect(raw).toBeTruthy();
-    expect(raw).not.toContain(GAS_SCRIPT_HASH);
-    expect(raw).not.toContain(N3_TO);
+    // The panel routes the live transcript through the store, not sessionStorage.
+    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(convStore.api.saveActive).toHaveBeenCalled();
 
-    const parsed = JSON.parse(raw);
-    expect(parsed.v).toBe(1);
-    expect(parsed.messages).toHaveLength(2);
-    expect(parsed.messages[1].proposals).toEqual([{ expired: true }]);
+    const payload = convStore.api.saveActive.mock.calls.at(-1)[0];
+    expect(payload.id).toBeTruthy();
+    // The panel hands over the FULL runtime proposal; stripping is the store's job.
+    const runtimeAssistant = payload.messages.find((m) => m.role === "assistant");
+    expect(runtimeAssistant.proposals[0].scriptHash).toBe(GAS_SCRIPT_HASH);
+
+    // ...and what the store actually keeps carries nothing signable.
+    const stored = convStore.api.__records.get(payload.id);
+    const storedJson = JSON.stringify(stored);
+    expect(storedJson).not.toContain(GAS_SCRIPT_HASH);
+    expect(storedJson).not.toContain(N3_TO);
+    expect(stored.messages.find((m) => m.role === "assistant").proposals).toEqual([
+      { expired: true },
+    ]);
   });
 
-  it("restores text but renders zero sign buttons from storage", async () => {
-    window.sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        v: 1,
+  it("resumes the most-recent conversation on open with zero sign buttons", async () => {
+    // A stored conversation whose (older/hostile) proposal must come back inert.
+    convStore.api.__seed([
+      {
+        id: "seed-1",
         chain: "n3",
-        explicit: true,
+        chainExplicit: true,
         messages: [
           { id: "m1", role: "user", content: "prepare a transfer" },
-          {
-            id: "m2",
-            role: "assistant",
-            content: "Here is a transfer.",
-            // A hostile / older payload with a full proposal must still be inert.
-            proposals: [n3Proposal()],
-          },
+          { id: "m2", role: "assistant", content: "Here is a transfer.", proposals: [n3Proposal()] },
         ],
-      }),
-    );
+      },
+    ]);
 
     await mountPanel({ open: true });
 
     expect(bodyText()).toContain("prepare a transfer");
     expect(bodyText()).toContain("Here is a transfer.");
-    expect(bodyText()).toContain(en.agent.restoredNotice);
+    expect(bodyText()).toContain(en.agent.history.restored);
     expect(bodyText()).toContain(en.agent.proposalExpired);
 
     // The one place a UI convenience would become a fund-safety issue.
     expect(document.querySelectorAll(".agent-proposal")).toHaveLength(0);
     expect(bodyText()).not.toContain(en.agent.proposal.sign);
     expect(bodyText()).not.toContain(en.agent.proposal.signAnyway);
+  });
+
+  it("starts empty and shows no restore notice when the library is empty", async () => {
+    await mountPanel({ open: true });
+    expect(bodyText()).not.toContain(en.agent.history.restored);
+    // create() reserved an active id, but nothing was written for an empty chat.
+    expect(convStore.api.activeId.value).toBeTruthy();
+    expect(convStore.api.conversations.value).toHaveLength(0);
   });
 
   it("still renders a live proposal card for a fresh answer", async () => {
@@ -851,42 +1011,33 @@ describe("AgentPanel — session persistence", () => {
     expect(bodyText()).not.toContain(en.agent.proposalExpired);
   });
 
-  it("ignores a payload written by a different version", async () => {
-    window.sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ v: 99, messages: [{ id: "m1", role: "user", content: "stale" }] }),
-    );
-    await mountPanel({ open: true });
-    expect(bodyText()).not.toContain("stale");
-    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
-  });
-
-  it("survives a corrupt payload", async () => {
-    window.sessionStorage.setItem(STORAGE_KEY, "{not json");
-    await mountPanel({ open: true });
-    expect(panelEl()).toBeTruthy();
-    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
-  });
-
-  it("clears the conversation on New chat and offers a 5s undo", async () => {
+  it("keeps the current conversation in the library on New chat and offers a 5s undo", async () => {
     vi.useFakeTimers();
     await mountPanel({ open: true });
     vi.useRealTimers();
-    await ask("hello");
-    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeTruthy();
+    await ask("keep me around");
+
+    expect(convStore.api.conversations.value).toHaveLength(1);
+    const oldId = convStore.api.activeId.value;
+    expect(convStore.api.__records.has(oldId)).toBe(true);
 
     buttonByLabel(en.agent.newChat).dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
     await nextTick();
 
-    expect(bodyText()).not.toContain("hello");
+    // The transcript is cleared, but the old conversation is NOT destroyed and a
+    // brand-new active conversation has replaced it.
+    expect(bodyText()).not.toContain("keep me around");
     expect(bodyText()).toContain(en.agent.newChatCleared);
-    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(convStore.api.__records.has(oldId)).toBe(true);
+    expect(convStore.api.activeId.value).not.toBe(oldId);
 
+    // Undo restores the transcript AND re-activates the original conversation.
     buttonByLabel(en.agent.undo).dispatchEvent(new Event("click", { bubbles: true }));
     await nextTick();
-    expect(bodyText()).toContain("hello");
+    expect(bodyText()).toContain("keep me around");
     expect(bodyText()).not.toContain(en.agent.newChatCleared);
-    expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeTruthy();
+    expect(convStore.api.activeId.value).toBe(oldId);
   });
 
   it("copies the conversation as markdown and announces it", async () => {
@@ -902,6 +1053,128 @@ describe("AgentPanel — session persistence", () => {
     expect(text).toContain("**You:**");
     expect(text).toContain("hello");
     expect(q('#agent-panel [role="status"]').textContent.trim()).toBe(en.agent.copyTranscriptDone);
+  });
+});
+
+/* ------------------------------------------------- conversation overlay --- */
+
+describe("AgentPanel — conversation library overlay", () => {
+  const historyLayer = () => q("#agent-history-panel");
+  const settingsSection = () => q("#agent-panel .agent-settings");
+  const historyToggle = () => buttonByLabel(en.agent.history.open);
+
+  async function openHistory() {
+    historyToggle().dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+  }
+
+  it("toggles the history overlay from the header and returns focus on close", async () => {
+    await mountPanel({ open: true });
+    expect(historyLayer()).toBeNull();
+
+    await openHistory();
+    expect(historyLayer()).toBeTruthy();
+    expect(historyToggle().getAttribute("aria-expanded")).toBe("true");
+    // The transcript stays MOUNTED underneath so no proposal card is re-armed.
+    expect(q("#agent-panel .agent-transcript")).toBeTruthy();
+
+    // Re-clicking the toggle closes the overlay and hands focus back to it.
+    historyToggle().dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(historyLayer()).toBeNull();
+    // Re-query: VTU re-creates the drawer subtree (a new node) on each update.
+    expect(document.activeElement).toBe(historyToggle());
+  });
+
+  it("keeps only one of settings/history open at a time", async () => {
+    await mountPanel({ open: true });
+
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeTruthy();
+
+    // Opening history peels the settings layer.
+    await openHistory();
+    expect(historyLayer()).toBeTruthy();
+    expect(settingsSection()).toBeNull();
+
+    // Opening settings peels the history layer.
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeTruthy();
+    expect(historyLayer()).toBeNull();
+  });
+
+  it("peels the history overlay on Escape before closing the drawer", async () => {
+    const wrapper = await mountPanel({ open: true });
+    await openHistory();
+    expect(historyLayer()).toBeTruthy();
+
+    // First Escape dismisses only the overlay; the drawer stays open.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(historyLayer()).toBeNull();
+    expect(wrapper.emitted("close")).toBeFalsy();
+
+    // Second Escape, with the conversation back in front, closes the drawer.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await nextTick();
+    expect(wrapper.emitted("close")).toBeTruthy();
+  });
+
+  it("loads a saved conversation from the list into the transcript", async () => {
+    await mountPanel({ open: true });
+    await ask("alpha question");
+    buttonByLabel(en.agent.newChat).dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+    await ask("bravo question");
+
+    // Both conversations are now in the library.
+    expect(convStore.api.conversations.value).toHaveLength(2);
+    expect(bodyText()).toContain("bravo question");
+
+    await openHistory();
+    const row = qa("#agent-history-panel .agent-history-open").find((node) =>
+      node.textContent.includes("alpha question"),
+    );
+    expect(row).toBeTruthy();
+    row.dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+
+    // The overlay closes and the older conversation is now in front.
+    expect(historyLayer()).toBeNull();
+    expect(bodyText()).toContain("alpha question");
+    expect(bodyText()).not.toContain("bravo question");
+    expect(convStore.api.open).toHaveBeenCalled();
+  });
+
+  it("starts a fresh chat from the library's New chat control, keeping the old one", async () => {
+    await mountPanel({ open: true });
+    await ask("earlier chat");
+    const firstId = convStore.api.activeId.value;
+
+    await openHistory();
+    // The list's own New chat button (matched by its text label), not the header
+    // icon-button (which shares the aria-label "New chat").
+    const listNew = qa("#agent-history-panel button").find(
+      (node) => node.textContent.trim() === en.agent.history.new,
+    );
+    expect(listNew).toBeTruthy();
+    listNew.dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+
+    expect(historyLayer()).toBeNull();
+    expect(bodyText()).not.toContain("earlier chat");
+    expect(convStore.api.__records.has(firstId)).toBe(true);
+    expect(convStore.api.activeId.value).not.toBe(firstId);
   });
 });
 
@@ -1084,7 +1357,6 @@ describe("AgentPanel — source guarantees", () => {
       "agent.copyTranscript",
       "agent.copyTranscriptDone",
       "agent.transcriptLabel",
-      "agent.restoredNotice",
       "agent.proposalExpired",
       "agent.chainLabel",
       "agent.chainSwitchPrompt",
@@ -1104,6 +1376,9 @@ describe("AgentPanel — source guarantees", () => {
       "agent.settings.open",
       "agent.settings.usingYourKey",
       "agent.settings.usingHosted",
+      // Conversation library (P4): the header history toggle + the load notice.
+      "agent.history.open",
+      "agent.history.restored",
     ]);
     const used = new Set();
     const pattern = /tf\(\s*"([^"]+)"/g;
@@ -1125,10 +1400,15 @@ describe("AgentPanel — source guarantees", () => {
     expect(panelSource).toContain('tf("agent.elapsed", "{s}s", { s: elapsedSeconds.value })');
   });
 
-  it("never persists to localStorage or the URL", () => {
+  it("delegates persistence to the store and touches no ambient storage or the URL", () => {
+    // Persistence moved into the store (IndexedDB/memory) behind the composable;
+    // the panel no longer hand-rolls sessionStorage and never used localStorage
+    // or URL state for transcripts.
     expect(panelSource).not.toContain("localStorage");
-    expect(panelSource).toContain("sessionStorage");
+    expect(panelSource).not.toContain("sessionStorage");
     expect(panelSource).not.toContain("history.pushState");
+    expect(panelSource).toContain("useAgentConversations");
+    expect(panelSource).toContain("saveActive");
   });
 });
 

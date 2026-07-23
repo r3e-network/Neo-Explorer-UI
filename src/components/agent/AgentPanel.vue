@@ -73,6 +73,21 @@
                 </svg>
               </button>
               <button
+                :ref="setHistoryButtonEl"
+                type="button"
+                class="agent-icon-btn"
+                :class="{ 'agent-icon-btn-active': showHistory }"
+                :aria-label="historyLabel"
+                :title="historyLabel"
+                :aria-expanded="showHistory"
+                aria-controls="agent-history-panel"
+                @click="toggleHistory"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+              </button>
+              <button
                 type="button"
                 class="agent-icon-btn"
                 :aria-label="newChatLabel"
@@ -245,6 +260,19 @@
           <div v-if="showSettings" id="agent-settings-panel" class="agent-settings-layer">
             <AgentSettings :open="showSettings" @close="closeSettings" />
           </div>
+
+          <!-- Conversation library overlay. Same pattern as settings: an absolute
+               layer over a still-mounted transcript, so switching or starting a
+               chat never tears down an AgentProposalCard's post-sign state. Only
+               one of settings/history is ever open at a time. -->
+          <div v-if="showHistory" id="agent-history-panel" class="agent-history-layer">
+            <AgentConversationList
+              :open="showHistory"
+              @open="loadConversation"
+              @new="newChatFromHistory"
+              @close="closeHistory"
+            />
+          </div>
         </div>
       </aside>
     </Transition>
@@ -252,14 +280,16 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import AgentComposer from "@/components/agent/AgentComposer.vue";
+import AgentConversationList from "@/components/agent/AgentConversationList.vue";
 import AgentMessageRow from "@/components/agent/AgentMessageRow.vue";
 import AgentProposalCard from "@/components/agent/AgentProposalCard.vue";
 import AgentSettings from "@/components/agent/AgentSettings.vue";
 import AgentSuggestions from "@/components/agent/AgentSuggestions.vue";
+import { useAgentConversations } from "@/composables/useAgentConversations";
 import { useAgentSettings } from "@/composables/useAgentSettings";
 import { useBodyScrollLock } from "@/composables/useBodyScrollLock";
 import { useFocusTrap } from "@/composables/useFocusTrap";
@@ -271,12 +301,6 @@ import { toMarkdown } from "@/utils/agentTranscript";
 import { copyTextToClipboard } from "@/utils/clipboard";
 
 const CHAIN_OPTIONS = Object.freeze(["n3", "neox", "both"]);
-
-// Versioned so a shape change cannot resurrect an incompatible transcript.
-const STORAGE_KEY = "neo-explorer-agent-session-v1";
-const STORAGE_VERSION = 1;
-const STORAGE_MAX_MESSAGES = 50;
-const STORAGE_MAX_CHARS = 100_000;
 
 // Distance from the bottom below which the reader counts as "pinned" and new
 // answers may scroll into view without yanking them out of what they were reading.
@@ -345,6 +369,26 @@ const { activeMode } = useAgentSettings();
 const showSettings = ref(false);
 const isByokActive = computed(() => activeMode.value === "byok");
 
+// The durable, local-first conversation library replaces the old single-session
+// transcript. The store (IndexedDB, degrading to memory) and all
+// proposal-stripping live behind this composable; the panel only feeds it live
+// transcript state and reads it back. `showHistory` is the overlay twin of
+// `showSettings` — never both open at once.
+const {
+  conversations,
+  activeId,
+  init: initConversations,
+  create: createConversation,
+  open: openConversation,
+  saveActive,
+} = useAgentConversations();
+const showHistory = ref(false);
+
+// Guards the auto-save watcher while we assign a loaded transcript into the
+// refs (mount restore / conversation switch), so restoring a conversation never
+// immediately rewrites it.
+let suppressSave = false;
+
 // Imperative DOM handles, deliberately NOT `ref()`. Nothing renders from them,
 // and a reactive template ref written during a Teleport's post-render ref phase
 // re-triggers this component's own render effect — an unbounded update loop
@@ -354,6 +398,7 @@ const composerRef = { value: null };
 const transcriptEl = { value: null };
 const panelEl = { value: null };
 const settingsButtonEl = { value: null };
+const historyButtonEl = { value: null };
 
 function setPanelEl(el) {
   panelEl.value = el || null;
@@ -371,6 +416,10 @@ function setSettingsButtonEl(el) {
   settingsButtonEl.value = el || null;
 }
 
+function setHistoryButtonEl(el) {
+  historyButtonEl.value = el || null;
+}
+
 const { activate, deactivate } = useFocusTrap(panelEl, { immediate: false });
 const { lock, unlock } = useBodyScrollLock();
 
@@ -378,6 +427,10 @@ let controller = null;
 let elapsedTimer = null;
 let undoTimer = null;
 let escapeAttached = false;
+// The first drawer-open defers its focus/trap activation until restoreLibrary
+// has loaded any saved conversation (that async restore re-renders the drawer,
+// which would otherwise drop the just-set focus and orphan the trap listener).
+let initialRestoreDone = false;
 
 const routePath = computed(() => String(route?.path || "/"));
 const routeChain = computed(() => (routePath.value.startsWith("/x") ? "neox" : "n3"));
@@ -397,6 +450,7 @@ const modeIndicatorLabel = computed(() =>
     : tf("agent.settings.usingHosted", "Hosted assistant"),
 );
 const newChatLabel = computed(() => tf("agent.newChat", "New chat"));
+const historyLabel = computed(() => tf("agent.history.open", "Conversations"));
 const newChatClearedLabel = computed(() => tf("agent.newChatCleared", "Conversation cleared"));
 const undoLabel = computed(() => tf("agent.undo", "Undo"));
 const copyTranscriptLabel = computed(() => tf("agent.copyTranscript", "Copy conversation"));
@@ -407,7 +461,7 @@ const proposalExpiredLabel = computed(() =>
   tf("agent.proposalExpired", "This proposal expired — ask again to get a fresh one."),
 );
 const restoredNoticeLabel = computed(() =>
-  tf("agent.restoredNotice", "Restored from this browser session."),
+  tf("agent.history.restored", "Loaded a saved conversation."),
 );
 const introLabel = computed(() =>
   tf(
@@ -470,7 +524,6 @@ function applyChain(value) {
       ),
     });
   }
-  persist();
 }
 
 function selectChain(value) {
@@ -490,10 +543,6 @@ function dismissChainSwitch() {
 
 function pushMessage(message) {
   messages.value.push({ id: nextId(), ...message });
-}
-
-function expiredProposal() {
-  return { expired: true, id: nextId() };
 }
 
 // Content key, never an index: index keys let a retried turn reuse a card
@@ -544,150 +593,72 @@ function noteIncoming() {
 
 /* ------------------------------------------------------------ persistence -- */
 
-function storage() {
-  try {
-    return globalThis.sessionStorage || null;
-  } catch {
-    return null;
-  }
-}
-
-function clearStorage() {
-  const store = storage();
-  if (!store) return;
-  try {
-    store.removeItem(STORAGE_KEY);
-  } catch {
-    // Best effort: a blocked storage never breaks the panel.
-  }
-}
-
-// Proposals are recorded as inert markers, never as payloads. Nothing signable
-// ever reaches storage, so nothing signable can come back out of it.
-function toStored(message) {
-  const stored = {
-    id: message.id,
-    role: message.role,
-    content: typeof message.content === "string" ? message.content : "",
-  };
-  if (Array.isArray(message.toolUses) && message.toolUses.length) {
-    stored.toolUses = message.toolUses.slice();
-  }
-  if (message.model) stored.model = message.model;
-  if (message.unavailable) {
-    stored.unavailable = true;
-    stored.reason = typeof message.reason === "string" ? message.reason : "";
-  }
-  if (message.stopped) stored.stopped = true;
-  if (message.error) stored.error = { kind: message.error.kind || "generic" };
-  if (Array.isArray(message.proposals) && message.proposals.length) {
-    stored.proposals = message.proposals.map(() => ({ expired: true }));
-  }
-  return stored;
-}
-
-function fromStored(message) {
-  const next = {
-    id: typeof message.id === "string" && message.id ? message.id : nextId(),
-    role: message.role,
-    content: typeof message.content === "string" ? message.content : "",
-  };
-  if (Array.isArray(message.toolUses)) {
-    next.toolUses = message.toolUses.filter((tool) => typeof tool === "string");
-  }
-  if (typeof message.model === "string") next.model = message.model;
-  if (message.unavailable) {
-    next.unavailable = true;
-    next.reason = typeof message.reason === "string" ? message.reason : "";
-  }
-  if (message.stopped) next.stopped = true;
-  if (message.error && typeof message.error === "object") {
-    next.error = { kind: message.error.kind || "generic" };
-  }
-  if (Array.isArray(message.proposals) && message.proposals.length) {
-    next.proposals = message.proposals.map(() => expiredProposal());
-  }
-  return next;
-}
-
-function isStoredMessage(message) {
-  return Boolean(message) && (message.role === "user" || message.role === "assistant" || message.role === "system");
-}
-
-function persist() {
-  const store = storage();
-  if (!store) return;
-  if (!hasMessages.value) {
-    clearStorage();
-    return;
-  }
-  try {
-    let list = messages.value.slice(-STORAGE_MAX_MESSAGES).map(toStored);
-    let payload = serialize(list);
-    while (payload.length > STORAGE_MAX_CHARS && list.length > 1) {
-      list = list.slice(1);
-      payload = serialize(list);
-    }
-    if (payload.length > STORAGE_MAX_CHARS) {
-      clearStorage();
-      return;
-    }
-    store.setItem(STORAGE_KEY, payload);
-  } catch {
-    // Quota exceeded or a serialization cycle: persistence is a convenience.
-  }
-}
-
-function serialize(list) {
-  return JSON.stringify({
-    v: STORAGE_VERSION,
+// Every transcript/scope edit persists the active conversation through the
+// store. The write is debounced inside the composable, so a burst of changes
+// coalesces into one save of the latest state. Proposal-stripping and the
+// "nothing signable is ever stored" guarantee live in the store; the panel just
+// hands over the live transcript. Persisting only when there are messages keeps
+// abandoned, empty conversations out of the library.
+function persistActive() {
+  if (!activeId.value || !hasMessages.value) return;
+  saveActive({
+    id: activeId.value,
+    messages: messages.value.slice(),
     chain: pinnedChain.value,
-    explicit: chainExplicit.value,
-    messages: list,
+    chainExplicit: chainExplicit.value,
   });
 }
 
-function restoreSession() {
-  const store = storage();
-  if (!store) return;
-  let raw = null;
-  try {
-    raw = store.getItem(STORAGE_KEY);
-  } catch {
-    return;
-  }
-  if (!raw) return;
+// `suppressSave` keeps a *load* (mount restore or conversation switch) from
+// echoing straight back out as a fresh save the moment the loaded transcript
+// lands in the refs.
+watch(
+  [messages, pinnedChain, chainExplicit],
+  () => {
+    if (suppressSave) return;
+    persistActive();
+  },
+  { deep: true },
+);
 
-  let parsed = null;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    clearStorage();
-    return;
-  }
-  if (!parsed || parsed.v !== STORAGE_VERSION || !Array.isArray(parsed.messages)) {
-    clearStorage();
-    return;
-  }
-
-  const list = parsed.messages
-    .filter(isStoredMessage)
-    .slice(-STORAGE_MAX_MESSAGES)
-    .map(fromStored);
-  if (list.length === 0) {
-    clearStorage();
-    return;
-  }
-
-  messages.value = list;
-  restored.value = true;
-  if (CHAIN_OPTIONS.includes(parsed.chain)) {
-    pinnedChain.value = parsed.chain;
-    chainExplicit.value = parsed.explicit === true;
-  }
+// Assign a loaded conversation into the refs without the save watcher rewriting
+// it. Re-enabled after the render this triggers settles.
+function applyLoaded(loaded) {
+  suppressSave = true;
+  messages.value = Array.isArray(loaded?.messages) ? loaded.messages : [];
+  pinnedChain.value = CHAIN_OPTIONS.includes(loaded?.chain) ? loaded.chain : routeChain.value;
+  chainExplicit.value = loaded?.chainExplicit === true;
+  dismissedChainNudge.value = "";
+  nextTick(() => {
+    suppressSave = false;
+  });
 }
 
-restoreSession();
+// On open, resume the most-recent conversation (Codex-style). A missing or empty
+// library starts a fresh, unsaved conversation instead — create() reserves an
+// active id but writes nothing until the first message is sent.
+async function restoreLibrary() {
+  await initConversations();
+  const list = conversations.value;
+  const mostRecent = Array.isArray(list) && list.length ? list[0] : null;
+  let loaded = null;
+  if (mostRecent) loaded = await openConversation(mostRecent.id);
+  if (loaded) {
+    applyLoaded(loaded);
+    restored.value = messages.value.length > 0;
+  } else {
+    createConversation();
+  }
+  // The restore above mutates reactive state and re-renders the drawer; the
+  // first open deliberately deferred its focus/trap activation to here so the
+  // trap attaches to the settled DOM and focus is not dropped by that render.
+  initialRestoreDone = true;
+  if (props.open) focusIntoPanel();
+}
+
+onMounted(() => {
+  restoreLibrary();
+});
 
 /* ------------------------------------------------------------ conversation - */
 
@@ -776,7 +747,6 @@ async function runConversation() {
       controller = null;
       loading.value = false;
       stopElapsedTimer();
-      persist();
       autoScroll();
     }
   }
@@ -838,7 +808,6 @@ function stopGenerating() {
   loading.value = false;
   stopElapsedTimer();
   pushMessage({ role: "assistant", content: "", stopped: true });
-  persist();
   autoScroll();
 }
 
@@ -851,16 +820,27 @@ function clearUndoTimer() {
   }
 }
 
+// New chat no longer destroys anything: the current conversation was persisted
+// incrementally as it was written, so it stays in the library. We commit its
+// latest state once more (best-effort), then create() a fresh, empty active
+// conversation and clear the view. The undo bar restores the just-cleared
+// transcript AND re-activates the conversation it belonged to, so a mis-click is
+// fully reversible without leaving a stray empty conversation behind.
 function newChat() {
   abortInFlight();
   loading.value = false;
   stopElapsedTimer();
   clearedSnapshot.value = {
+    id: activeId.value,
     messages: messages.value.slice(),
     chain: pinnedChain.value,
     explicit: chainExplicit.value,
     restored: restored.value,
   };
+  // Persist the outgoing conversation one last time before switching away.
+  persistActive();
+  createConversation();
+  suppressSave = true;
   messages.value = [];
   restored.value = false;
   unreadAnswer.value = false;
@@ -869,7 +849,9 @@ function newChat() {
   chainExplicit.value = false;
   pinnedChain.value = routeChain.value;
   dismissedChainNudge.value = "";
-  clearStorage();
+  nextTick(() => {
+    suppressSave = false;
+  });
   clearUndoTimer();
   undoTimer = setTimeout(() => {
     clearedSnapshot.value = null;
@@ -881,13 +863,15 @@ function newChat() {
 function undoNewChat() {
   const snapshot = clearedSnapshot.value;
   if (!snapshot) return;
+  // Re-activate the conversation the transcript belonged to so subsequent edits
+  // update it rather than the empty one New chat just created.
+  if (snapshot.id) activeId.value = snapshot.id;
   messages.value = snapshot.messages;
   pinnedChain.value = snapshot.chain;
   chainExplicit.value = snapshot.explicit;
   restored.value = snapshot.restored;
   clearedSnapshot.value = null;
   clearUndoTimer();
-  persist();
   autoScroll(true);
 }
 
@@ -907,6 +891,8 @@ function close() {
 }
 
 function toggleSettings() {
+  // Only one overlay at a time: opening settings peels the history layer.
+  if (!showSettings.value) showHistory.value = false;
   showSettings.value = !showSettings.value;
 }
 
@@ -922,12 +908,75 @@ function closeSettings() {
   });
 }
 
+/* --------------------------------------------------- conversation library -- */
+
+function toggleHistory() {
+  if (showHistory.value) {
+    closeHistory();
+    return;
+  }
+  // Only one overlay at a time: opening history peels the settings layer.
+  showSettings.value = false;
+  showHistory.value = true;
+}
+
+// Mirror closeSettings: the history layer's own controls unmount with it, so
+// return focus to the header toggle rather than letting it fall to <body>.
+function closeHistory() {
+  if (!showHistory.value) return;
+  showHistory.value = false;
+  nextTick(() => {
+    const button = historyButtonEl.value;
+    if (button && typeof button.focus === "function") button.focus();
+  });
+}
+
+// Load a stored conversation into the transcript. The current conversation was
+// persisted incrementally, so it already lives in the library; a best-effort
+// final save captures any last delta before we switch. applyLoaded suppresses
+// the save watcher so the freshly loaded transcript is not immediately rewritten.
+async function loadConversation(id) {
+  if (!id) return;
+  if (id === activeId.value) {
+    closeHistory();
+    return;
+  }
+  abortInFlight();
+  loading.value = false;
+  stopElapsedTimer();
+  persistActive();
+  clearedSnapshot.value = null;
+  clearUndoTimer();
+  const loaded = await openConversation(id);
+  if (loaded) {
+    applyLoaded(loaded);
+    restored.value = messages.value.length > 0;
+    unreadAnswer.value = false;
+    pinnedToBottom.value = true;
+    announcement.value = "";
+  }
+  closeHistory();
+  focusComposer();
+  autoScroll(true);
+}
+
+// Starting a fresh chat from inside the library hides the overlay without
+// bouncing focus back to the toggle — newChat() lands focus in the composer.
+function newChatFromHistory() {
+  showHistory.value = false;
+  newChat();
+}
+
 /* ------------------------------------------------------- modality plumbing - */
 
 function onDocumentKeydown(event) {
   if (event.key !== "Escape" && event.key !== "Esc") return;
-  // Escape peels one layer: dismiss the settings overlay first, and only close
-  // the whole drawer once the conversation is back in front.
+  // Escape peels one layer at a time: the history overlay first, then settings,
+  // and only closes the whole drawer once the conversation is back in front.
+  if (showHistory.value) {
+    closeHistory();
+    return;
+  }
   if (showSettings.value) {
     closeSettings();
     return;
@@ -967,6 +1016,19 @@ function focusOnOpen() {
   if (panelEl.value && typeof panelEl.value.focus === "function") panelEl.value.focus();
 }
 
+// Activate the focus trap and move focus into the drawer. Queued on nextTick so
+// the trap attaches to the current DOM; the inner nextTick lands focus after the
+// trap's own first-focusable focus, so the composer (or panel on mobile) wins.
+function focusIntoPanel() {
+  nextTick(() => {
+    activate();
+    nextTick(() => {
+      focusOnOpen();
+      autoScroll(true);
+    });
+  });
+}
+
 watch(routeChain, (chain) => {
   dismissedChainNudge.value = "";
   if (!chainExplicit.value) pinnedChain.value = chain;
@@ -979,22 +1041,19 @@ watch(
     if (isOpen) {
       lock();
       attachEscape();
-      nextTick(() => {
-        activate();
-        // Queued after the trap's own nextTick focus, so this wins.
-        nextTick(() => {
-          focusOnOpen();
-          autoScroll(true);
-        });
-      });
+      // The very first open waits for restoreLibrary() to focus once the
+      // restored transcript has settled; later opens have nothing to load and
+      // focus immediately.
+      if (initialRestoreDone) focusIntoPanel();
     } else {
       // Deliberately no abort: a request started before the drawer closed is
       // allowed to land, and arrives flagged as unread.
       unlock();
       detachEscape();
       deactivate();
-      // Reopen should land on the conversation, not a stale settings overlay.
+      // Reopen should land on the conversation, not a stale overlay.
       showSettings.value = false;
+      showHistory.value = false;
     }
   },
   // `immediate` so a panel mounted already-open is still modal, locked and
@@ -1281,6 +1340,26 @@ onBeforeUnmount(() => {
 }
 
 .dark .agent-settings-layer {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-elevated) 97%, rgba(255, 255, 255, 0.02)) 0%,
+    color-mix(in srgb, var(--surface-elevated) 90%, rgba(9, 14, 24, 0.98)) 100%
+  );
+}
+
+/* Conversation library overlay: same opaque, self-contained layer as settings.
+   The list manages its own internal scrolling (its .agent-history-list is the
+   scroll region), so the layer itself does not scroll. */
+.agent-history-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: var(--surface-elevated);
+}
+
+.dark .agent-history-layer {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--surface-elevated) 97%, rgba(255, 255, 255, 0.02)) 0%,

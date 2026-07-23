@@ -111,4 +111,45 @@ describe("i18n source", () => {
       );
     }
   });
+
+  it("defines an identical set of conversation history keys in every locale", () => {
+    const requiredHistoryKeys = [
+      "open",
+      "title",
+      "new",
+      "empty",
+      "untitled",
+      "rename",
+      "renamePlaceholder",
+      "save",
+      "cancel",
+      "delete",
+      "confirmDelete",
+      "export",
+      "exported",
+      "messages",
+      "notPersistent",
+      "restored",
+    ];
+    const expectedKeys = [...requiredHistoryKeys].sort();
+
+    for (const [locale, localeMessages] of Object.entries(messages)) {
+      const history = localeMessages?.agent?.history;
+      expect(history, `${locale}.agent.history`).toBeTypeOf("object");
+
+      for (const key of requiredHistoryKeys) {
+        const value = getMessage(localeMessages, `agent.history.${key}`);
+        expect(typeof value, `${locale}.agent.history.${key} type`).toBe("string");
+        expect(value.trim(), `${locale}.agent.history.${key} non-empty`).not.toBe("");
+      }
+
+      // The {n} placeholder must be preserved verbatim in every locale.
+      expect(history.messages, `${locale}.agent.history.messages placeholder`).toContain("{n}");
+
+      // No missing and no extra dot-paths — the set is identical across locales.
+      expect([...Object.keys(history)].sort(), `${locale}.agent.history keys`).toEqual(
+        expectedKeys,
+      );
+    }
+  });
 });
