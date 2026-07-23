@@ -42,9 +42,36 @@
               <h2 id="agent-panel-title" class="agent-title text-high text-base font-semibold">
                 {{ titleLabel }}
               </h2>
+              <span
+                class="agent-mode-badge"
+                :class="isByokActive ? 'agent-mode-badge-byok' : 'agent-mode-badge-hosted'"
+                :data-mode="activeMode"
+              >
+                {{ modeIndicatorLabel }}
+              </span>
             </div>
 
             <div class="agent-header-actions">
+              <button
+                :ref="setSettingsButtonEl"
+                type="button"
+                class="agent-icon-btn"
+                :class="{ 'agent-icon-btn-active': showSettings }"
+                :aria-label="settingsLabel"
+                :title="settingsLabel"
+                :aria-expanded="showSettings"
+                aria-controls="agent-settings-panel"
+                @click="toggleSettings"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
               <button
                 type="button"
                 class="agent-icon-btn"
@@ -131,6 +158,11 @@
           </span>
         </div>
 
+        <!-- Conversation body. The settings overlay is a sibling here so it can
+             cover the transcript/composer WITHOUT unmounting them: tearing the
+             transcript down would reset every AgentProposalCard's post-sign
+             state (the reason it is v-show, not v-if). -->
+        <div class="agent-body">
         <div
           :ref="setTranscriptEl"
           class="agent-transcript"
@@ -205,6 +237,15 @@
           @submit="send"
           @stop="stopGenerating"
         />
+
+          <!-- Settings overlay. Absolutely positioned over the body (not a
+               separate route), so the transcript underneath stays mounted.
+               AgentSettings owns its own open/close Transition; the wrapper is
+               v-if'd only so an empty opaque layer never sits over the chat. -->
+          <div v-if="showSettings" id="agent-settings-panel" class="agent-settings-layer">
+            <AgentSettings :open="showSettings" @close="closeSettings" />
+          </div>
+        </div>
       </aside>
     </Transition>
   </Teleport>
@@ -217,7 +258,9 @@ import { useI18n } from "vue-i18n";
 import AgentComposer from "@/components/agent/AgentComposer.vue";
 import AgentMessageRow from "@/components/agent/AgentMessageRow.vue";
 import AgentProposalCard from "@/components/agent/AgentProposalCard.vue";
+import AgentSettings from "@/components/agent/AgentSettings.vue";
 import AgentSuggestions from "@/components/agent/AgentSuggestions.vue";
+import { useAgentSettings } from "@/composables/useAgentSettings";
 import { useBodyScrollLock } from "@/composables/useBodyScrollLock";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 import { askAgent } from "@/services/agentService";
@@ -293,6 +336,15 @@ const clearedSnapshot = ref(null);
 const dismissedChainNudge = ref("");
 const chainExplicit = ref(false);
 
+// BYOK settings overlay. The gear in the header toggles it; the header badge
+// reflects the active provider. This component only reads the composable's
+// derived `activeMode` — the key/model/base URL live in (and are read by) the
+// composable and the request seam, never here, so no credential touches the
+// panel or its session storage.
+const { activeMode } = useAgentSettings();
+const showSettings = ref(false);
+const isByokActive = computed(() => activeMode.value === "byok");
+
 // Imperative DOM handles, deliberately NOT `ref()`. Nothing renders from them,
 // and a reactive template ref written during a Teleport's post-render ref phase
 // re-triggers this component's own render effect — an unbounded update loop
@@ -301,6 +353,7 @@ const chainExplicit = ref(false);
 const composerRef = { value: null };
 const transcriptEl = { value: null };
 const panelEl = { value: null };
+const settingsButtonEl = { value: null };
 
 function setPanelEl(el) {
   panelEl.value = el || null;
@@ -312,6 +365,10 @@ function setTranscriptEl(el) {
 
 function setComposerRef(el) {
   composerRef.value = el || null;
+}
+
+function setSettingsButtonEl(el) {
+  settingsButtonEl.value = el || null;
 }
 
 const { activate, deactivate } = useFocusTrap(panelEl, { immediate: false });
@@ -333,6 +390,12 @@ const hasMessages = computed(() => messages.value.length > 0);
 
 const titleLabel = computed(() => tf("agent.title", "AI Assistant"));
 const closeLabel = computed(() => tf("agent.close", "Close"));
+const settingsLabel = computed(() => tf("agent.settings.open", "Settings"));
+const modeIndicatorLabel = computed(() =>
+  isByokActive.value
+    ? tf("agent.settings.usingYourKey", "Using your key")
+    : tf("agent.settings.usingHosted", "Hosted assistant"),
+);
 const newChatLabel = computed(() => tf("agent.newChat", "New chat"));
 const newChatClearedLabel = computed(() => tf("agent.newChatCleared", "Conversation cleared"));
 const undoLabel = computed(() => tf("agent.undo", "Undo"));
@@ -843,10 +906,32 @@ function close() {
   emit("close");
 }
 
+function toggleSettings() {
+  showSettings.value = !showSettings.value;
+}
+
+// Return focus to the gear when the overlay closes: the Done button that fired
+// this is inside the overlay and unmounts, so focus would otherwise fall to the
+// body and escape the pattern the drawer's focus trap maintains.
+function closeSettings() {
+  if (!showSettings.value) return;
+  showSettings.value = false;
+  nextTick(() => {
+    const button = settingsButtonEl.value;
+    if (button && typeof button.focus === "function") button.focus();
+  });
+}
+
 /* ------------------------------------------------------- modality plumbing - */
 
 function onDocumentKeydown(event) {
   if (event.key !== "Escape" && event.key !== "Esc") return;
+  // Escape peels one layer: dismiss the settings overlay first, and only close
+  // the whole drawer once the conversation is back in front.
+  if (showSettings.value) {
+    closeSettings();
+    return;
+  }
   close();
 }
 
@@ -908,6 +993,8 @@ watch(
       unlock();
       detachEscape();
       deactivate();
+      // Reopen should land on the conversation, not a stale settings overlay.
+      showSettings.value = false;
     }
   },
   // `immediate` so a panel mounted already-open is still modal, locked and
@@ -1032,6 +1119,34 @@ onBeforeUnmount(() => {
   color: var(--link);
 }
 
+/* Provider badge: a quiet, always-present statement of which key is answering,
+   so BYOK mode is never a hidden state. Muted for hosted, accented for byok. */
+.agent-mode-badge {
+  flex-shrink: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-glass);
+  color: var(--text-mid);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.agent-mode-badge-byok {
+  border-color: color-mix(in srgb, var(--link) 45%, transparent);
+  background: var(--icon-bg-primary);
+  color: var(--link);
+}
+
+.dark .agent-mode-badge-hosted {
+  border-color: color-mix(in srgb, var(--line-soft) 78%, rgba(255, 255, 255, 0.02));
+}
+
 .agent-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -1057,6 +1172,13 @@ onBeforeUnmount(() => {
 .agent-icon-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* The gear reads as pressed while its overlay is open. */
+.agent-icon-btn-active,
+.agent-icon-btn-active:hover:not(:disabled) {
+  background: var(--icon-bg-primary);
+  color: var(--link);
 }
 
 @media (max-width: 767px) {
@@ -1135,6 +1257,35 @@ onBeforeUnmount(() => {
 .agent-bar-btn {
   min-height: 1.5rem;
   flex-shrink: 0;
+}
+
+/* Conversation body: the flex region the settings overlay is positioned over. */
+.agent-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Settings overlay: fills the body, opaque so the chat never shows through,
+   and scrolls on its own without chaining to the page. */
+.agent-settings-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-elevated);
+}
+
+.dark .agent-settings-layer {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-elevated) 97%, rgba(255, 255, 255, 0.02)) 0%,
+    color-mix(in srgb, var(--surface-elevated) 90%, rgba(9, 14, 24, 0.98)) 100%
+  );
 }
 
 /* Transcript */

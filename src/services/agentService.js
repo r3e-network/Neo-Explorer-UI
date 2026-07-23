@@ -2,13 +2,21 @@
 //
 // Talks to the serverless orchestrator at POST /api/agent. The agent only ever
 // *proposes* unsigned transactions; the user signs in their own wallet (see
-// utils/proposalSigner.js). This module carries no keys and never signs.
+// utils/proposalSigner.js). This module never signs and stores no keys of its
+// own. When the user opts into BYOK it forwards their LLM API key as a
+// per-request header (never logged, never persisted here); the wallet key is
+// never involved.
 //
 // Backend contract:
 //   POST /api/agent { messages?, query?, chain? }
+//     Optional BYOK headers (attached by the provider seam, used per-request,
+//     never stored server-side): X-Agent-Key, X-Agent-Model, X-Agent-Base-Url.
 //     → 200 { answer, toolUses, proposals, model }
 //     → 503 { unavailable: true, reason: "agent_unconfigured"|"mcp_unconfigured" }
 //     → 502 { unavailable: true, reason: "agent_upstream_error" }
+
+import { useAgentSettings } from "../composables/useAgentSettings.js";
+import { resolveProvider } from "./agent/providers.js";
 
 const AGENT_ENDPOINT = "/api/agent";
 
@@ -40,6 +48,38 @@ function normalizeReason(payload) {
   return reason || "agent_unavailable";
 }
 
+/** Unwrap a Vue ref-like value; pass plain values through untouched. */
+function unwrap(maybeRef) {
+  if (maybeRef && typeof maybeRef === "object" && "value" in maybeRef) {
+    return maybeRef.value;
+  }
+  return maybeRef;
+}
+
+/**
+ * Read a plain, ref-free snapshot of the current agent settings for the
+ * provider seam. Guarded so a storage/SSR fault (or a not-yet-ready composable)
+ * degrades to the hosted provider rather than throwing on every request. The
+ * BYOK secret is only read here to hand straight to resolveProvider — it is
+ * never logged or persisted by this module.
+ *
+ * @returns {{ mode: string, apiKey: string, model: string, baseUrl: string }}
+ */
+function readAgentSettings() {
+  try {
+    const settings = useAgentSettings();
+    return {
+      mode: unwrap(settings?.mode),
+      apiKey: unwrap(settings?.apiKey),
+      model: unwrap(settings?.model),
+      baseUrl: unwrap(settings?.baseUrl),
+    };
+  } catch {
+    // Composable unavailable (e.g. no storage / SSR) → hosted default.
+    return { mode: "hosted", apiKey: "", model: "", baseUrl: "" };
+  }
+}
+
 /**
  * Ask the agent orchestrator a question. Sends `messages` when a conversation
  * is provided, otherwise the single `query`. One request, no retries.
@@ -62,6 +102,9 @@ export async function askAgent({ messages, query, chain, signal } = {}) {
   }
   if (chain) body.chain = chain;
 
+  // Active provider (hosted → {}, byok → X-Agent-* headers for non-empty values).
+  const { headers: providerHeaders } = resolveProvider(readAgentSettings());
+
   let response;
   try {
     response = await fetch(AGENT_ENDPOINT, {
@@ -69,6 +112,7 @@ export async function askAgent({ messages, query, chain, signal } = {}) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...providerHeaders,
       },
       body: JSON.stringify(body),
       signal,

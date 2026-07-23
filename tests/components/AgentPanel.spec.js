@@ -37,6 +37,7 @@ import AgentPanel from "@/components/agent/AgentPanel.vue";
 import AgentProposalCard from "@/components/agent/AgentProposalCard.vue";
 import panelSource from "@/components/agent/AgentPanel.vue?raw";
 import en from "@/lang/en";
+import { useAgentSettings } from "@/composables/useAgentSettings";
 
 const STORAGE_KEY = "neo-explorer-agent-session-v1";
 
@@ -1099,6 +1100,10 @@ describe("AgentPanel — source guarantees", () => {
       "agent.newMessage",
       "agent.answerReady",
       "agent.answerReadyWithProposals",
+      // BYOK wiring (P5): the gear aria-label and the header provider badge.
+      "agent.settings.open",
+      "agent.settings.usingYourKey",
+      "agent.settings.usingHosted",
     ]);
     const used = new Set();
     const pattern = /tf\(\s*"([^"]+)"/g;
@@ -1124,5 +1129,158 @@ describe("AgentPanel — source guarantees", () => {
     expect(panelSource).not.toContain("localStorage");
     expect(panelSource).toContain("sessionStorage");
     expect(panelSource).not.toContain("history.pushState");
+  });
+});
+
+/* --------------------------------------------------- BYOK settings wiring - */
+
+describe("AgentPanel — BYOK settings wiring", () => {
+  // The panel and the test share the real useAgentSettings singleton (module
+  // state), so each test resets it to hosted defaults and clears its
+  // localStorage residue rather than leaking a byok key into the next one.
+  function resetAgentSettings() {
+    const settings = useAgentSettings();
+    settings.clearKey();
+    settings.setMode("hosted");
+    settings.setModel("");
+    settings.setBaseUrl("");
+    settings.setRememberKey(false);
+    try {
+      window.localStorage.clear();
+    } catch {
+      /* ignore: restricted/private-mode storage */
+    }
+  }
+
+  beforeEach(resetAgentSettings);
+  afterEach(resetAgentSettings);
+
+  const modeBadge = () => q("#agent-panel .agent-mode-badge");
+  const settingsSection = () => q("#agent-panel .agent-settings");
+
+  it("shows a hosted provider badge by default and hides the settings overlay", async () => {
+    await mountPanel({ open: true });
+
+    const badge = modeBadge();
+    expect(badge).toBeTruthy();
+    expect(badge.getAttribute("data-mode")).toBe("hosted");
+    expect(badge.textContent.trim()).toBe(en.agent.settings.usingHosted);
+    // The gear is present, labelled from the contract key, and collapsed.
+    const gear = buttonByLabel(en.agent.settings.open);
+    expect(gear).toBeTruthy();
+    expect(gear.getAttribute("aria-expanded")).toBe("false");
+    expect(settingsSection()).toBeNull();
+  });
+
+  it("opens the settings overlay from the gear without unmounting the transcript", async () => {
+    serviceMock.askAgent.mockResolvedValue({
+      answer: "Here is a transfer.",
+      toolUses: [],
+      proposals: [n3Proposal()],
+      model: "",
+    });
+    const wrapper = await mountPanel({ open: true });
+    await ask("prepare a transfer");
+    expect(wrapper.findAllComponents(AgentProposalCard)).toHaveLength(1);
+
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+
+    // The overlay is now shown and reachable...
+    expect(settingsSection()).toBeTruthy();
+    expect(bodyText()).toContain(en.agent.settings.title);
+    // Re-query: VTU re-creates the drawer's Transition child (and its subtree)
+    // on update, so a button node captured before the click is stale here.
+    expect(buttonByLabel(en.agent.settings.open).getAttribute("aria-expanded")).toBe("true");
+
+    // ...layered OVER a transcript that is still mounted, so a signed
+    // proposal card is never torn down and re-armed by opening settings.
+    expect(q("#agent-panel .agent-transcript")).toBeTruthy();
+    expect(wrapper.findAllComponents(AgentProposalCard)).toHaveLength(1);
+  });
+
+  it("drives the badge from useAgentSettings.activeMode, not the raw mode", async () => {
+    await mountPanel({ open: true });
+    expect(modeBadge().getAttribute("data-mode")).toBe("hosted");
+
+    const settings = useAgentSettings();
+    // Selecting byok is not enough: activeMode stays hosted until a key exists,
+    // so the assistant is never shown as "using your key" while unusable.
+    settings.setMode("byok");
+    await nextTick();
+    expect(modeBadge().getAttribute("data-mode")).toBe("hosted");
+    expect(modeBadge().textContent.trim()).toBe(en.agent.settings.usingHosted);
+
+    settings.setApiKey("sk-user-supplied-key");
+    await nextTick();
+    expect(modeBadge().getAttribute("data-mode")).toBe("byok");
+    expect(modeBadge().textContent.trim()).toBe(en.agent.settings.usingYourKey);
+
+    // Clearing the key falls back to hosted rather than a broken byok state.
+    settings.clearKey();
+    await nextTick();
+    expect(modeBadge().getAttribute("data-mode")).toBe("hosted");
+    expect(modeBadge().textContent.trim()).toBe(en.agent.settings.usingHosted);
+  });
+
+  it("peels the settings overlay on Escape before closing the drawer", async () => {
+    const wrapper = await mountPanel({ open: true });
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeTruthy();
+
+    // First Escape dismisses only the overlay; the drawer stays open.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeNull();
+    expect(wrapper.emitted("close")).toBeFalsy();
+
+    // Second Escape, with the conversation back in front, closes the drawer.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await nextTick();
+    expect(wrapper.emitted("close")).toBeTruthy();
+  });
+
+  it("closes the overlay on Done and returns focus to the gear", async () => {
+    await mountPanel({ open: true });
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeTruthy();
+
+    buttonByLabel(en.agent.settings.done).dispatchEvent(new Event("click", { bubbles: true }));
+    await flushPromises();
+    await nextTick();
+
+    expect(settingsSection()).toBeNull();
+    // Focus must not fall to <body>: the Done button that fired unmounted with
+    // the overlay, so the panel hands focus back to the gear. Re-query because
+    // VTU re-creates the drawer subtree (a new button node) on each update.
+    const gear = buttonByLabel(en.agent.settings.open);
+    expect(document.activeElement).toBe(gear);
+    expect(document.activeElement.getAttribute("aria-label")).toBe(en.agent.settings.open);
+  });
+
+  it("resets the overlay when the drawer closes so reopening lands on the chat", async () => {
+    const wrapper = await mountPanel({ open: true });
+    buttonByLabel(en.agent.settings.open).dispatchEvent(new Event("click", { bubbles: true }));
+    await nextTick();
+    await nextTick();
+    expect(settingsSection()).toBeTruthy();
+
+    await wrapper.setProps({ open: false });
+    await flushPromises();
+    await nextTick();
+
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+    await nextTick();
+    await nextTick();
+    // Reopened on the conversation, not the stale settings overlay.
+    expect(settingsSection()).toBeNull();
+    expect(q("#agent-panel .agent-transcript")).toBeTruthy();
   });
 });

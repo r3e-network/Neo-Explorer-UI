@@ -67,4 +67,48 @@ describe("i18n source", () => {
       }
     }
   });
+
+  it("defines an identical set of assistant BYOK settings keys in every locale", () => {
+    const requiredSettingsKeys = [
+      "open",
+      "title",
+      "provider",
+      "hosted",
+      "hostedHelp",
+      "byok",
+      "byokHelp",
+      "apiKey",
+      "apiKeyPlaceholder",
+      "show",
+      "hide",
+      "clear",
+      "model",
+      "modelPlaceholder",
+      "baseUrl",
+      "baseUrlDefault",
+      "remember",
+      "rememberHelp",
+      "noStore",
+      "usingYourKey",
+      "usingHosted",
+      "done",
+    ];
+    const expectedKeys = [...requiredSettingsKeys].sort();
+
+    for (const [locale, localeMessages] of Object.entries(messages)) {
+      const settings = localeMessages?.agent?.settings;
+      expect(settings, `${locale}.agent.settings`).toBeTypeOf("object");
+
+      for (const key of requiredSettingsKeys) {
+        const value = getMessage(localeMessages, `agent.settings.${key}`);
+        expect(typeof value, `${locale}.agent.settings.${key} type`).toBe("string");
+        expect(value.trim(), `${locale}.agent.settings.${key} non-empty`).not.toBe("");
+      }
+
+      // No missing and no extra dot-paths — the set is identical across locales.
+      expect([...Object.keys(settings)].sort(), `${locale}.agent.settings keys`).toEqual(
+        expectedKeys,
+      );
+    }
+  });
 });

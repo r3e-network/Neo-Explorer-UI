@@ -53,11 +53,11 @@ function createMockRes() {
   };
 }
 
-function createRequest({ method = "POST", body, ip = "127.0.0.1" } = {}) {
+function createRequest({ method = "POST", body, ip = "127.0.0.1", headers = {} } = {}) {
   return {
     method,
     body,
-    headers: {},
+    headers: { ...headers },
     socket: { remoteAddress: ip },
   };
 }
@@ -523,6 +523,232 @@ describe("api/agent", () => {
     } finally {
       nowSpy.mockRestore();
     }
+  });
+});
+
+describe("api/agent BYOK (bring-your-own-key) header handling", () => {
+  // A distinctive user credential + a shared key that must NEVER be substituted
+  // for it on the BYOK path. Distinct enough that a leak is unambiguous.
+  const BYOK_KEY = "sk-user-byok-Zzz999xyz";
+  const SHARED_KEY = "sk-shared-should-not-be-used";
+
+  beforeEach(() => {
+    vi.resetModules();
+    createMock.mockReset();
+    listToolsMock.mockReset();
+    callToolMock.mockReset();
+    clientOptions.value = undefined;
+    listToolsMock.mockResolvedValue([
+      { name: "get_block_count", description: "N3 height", input_schema: { type: "object", properties: {} } },
+    ]);
+    // A benign final answer so any request that reaches the model returns 200.
+    createMock.mockResolvedValue({
+      model: "provider-echoed-model",
+      stop_reason: "end_turn",
+      content: [{ type: "text", text: "ok" }],
+    });
+    vi.stubEnv("DEEPSEEK_API_KEY", "");
+    vi.stubEnv("DEEPSEEK_BASE_URL", "");
+    vi.stubEnv("AGENT_MODEL", "");
+    vi.stubEnv("NEOX_MCP_URL", "https://mcp.example/neo");
+    vi.stubEnv("NEOX_MCP_BEARER", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("uses the user's key + allowlisted base URL + model override, never the shared key", async () => {
+    // Shared key IS configured; the BYOK request must still win over it.
+    vi.stubEnv("DEEPSEEK_API_KEY", SHARED_KEY);
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.1",
+        headers: {
+          "x-agent-key": BYOK_KEY,
+          "x-agent-model": "claude-3-5-haiku-latest",
+          "x-agent-base-url": "https://api.anthropic.com",
+        },
+        body: { query: "What is the N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(createMock).toHaveBeenCalledTimes(1);
+    // Client constructed with the USER credential + validated base URL — the
+    // shared key is present but must NOT be used. (Fails if BYOK wiring removed.)
+    expect(clientOptions.value.apiKey).toBe(BYOK_KEY);
+    expect(clientOptions.value.apiKey).not.toBe(SHARED_KEY);
+    expect(clientOptions.value.baseURL).toBe("https://api.anthropic.com");
+    // The model override is what actually gets sent to the provider.
+    const [payload] = createMock.mock.calls[0];
+    expect(payload.model).toBe("claude-3-5-haiku-latest");
+  });
+
+  it("works with the user's key even when the shared DEEPSEEK key is unset (no 503)", async () => {
+    // DEEPSEEK_API_KEY stays "" from beforeEach: a hosted request would 503 here.
+    // (Fails if the 503 gate is not relaxed for a BYOK request.)
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.2",
+        headers: { "x-agent-key": BYOK_KEY },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(clientOptions.value.apiKey).toBe(BYOK_KEY);
+  });
+
+  it("defaults BYOK base URL + model to the hosted defaults when only a key is sent", async () => {
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.3",
+        headers: { "x-agent-key": BYOK_KEY },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(clientOptions.value.apiKey).toBe(BYOK_KEY);
+    expect(clientOptions.value.baseURL).toBe("https://api.deepseek.com/anthropic");
+    const [payload] = createMock.mock.calls[0];
+    expect(payload.model).toBe("deepseek-v4-flash");
+  });
+
+  it("rejects a non-allowlisted BYOK base URL with 400 and never calls the model or MCP", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", SHARED_KEY);
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.4",
+        headers: {
+          "x-agent-key": BYOK_KEY,
+          "x-agent-base-url": "https://evil.example.com/anthropic",
+        },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    // SSRF guard short-circuits: 400 before any provider or MCP work.
+    // (Fails — request would reach the mocked model and 200 — if guard removed.)
+    expect(res.statusCode).toBe(400);
+    expect(res.getJson()).toEqual({ error: "agent_base_url_not_allowed" });
+    expect(createMock).not.toHaveBeenCalled();
+    expect(listToolsMock).not.toHaveBeenCalled();
+    // The rejection body carries no credential.
+    expect(res.body).not.toContain(BYOK_KEY);
+  });
+
+  it("leaves the shared-key path unchanged when no BYOK headers are present", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", SHARED_KEY);
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({ ip: "10.30.0.5", body: { query: "N3 block height?", chain: "n3" } }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(clientOptions.value.apiKey).toBe(SHARED_KEY);
+    expect(clientOptions.value.baseURL).toBe("https://api.deepseek.com/anthropic");
+    const [payload] = createMock.mock.calls[0];
+    expect(payload.model).toBe("deepseek-v4-flash");
+  });
+
+  it("never leaks the BYOK credential in the 502 upstream-error response", async () => {
+    // The SDK error text embeds the user's key + model; the 502 body must not.
+    createMock.mockReset();
+    createMock.mockRejectedValueOnce(
+      new Error(`upstream 401 for key ${BYOK_KEY} model claude-3-5-haiku-latest at https://api.anthropic.com`),
+    );
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.6",
+        headers: {
+          "x-agent-key": BYOK_KEY,
+          "x-agent-model": "claude-3-5-haiku-latest",
+          "x-agent-base-url": "https://api.anthropic.com",
+        },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(502);
+    expect(res.getJson()).toEqual({ unavailable: true, reason: "agent_upstream_error" });
+    // The whole raw response must not carry the user's key or model override.
+    // (Fails if the catch is changed to echo the thrown error message.)
+    const raw = res.body;
+    expect(raw).not.toContain(BYOK_KEY);
+    expect(raw).not.toContain("claude-3-5-haiku-latest");
+  });
+
+  it("ignores BYOK model/base-url headers when no key is provided (shared path, no 400)", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", SHARED_KEY);
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.7",
+        // A model + a NON-allowlisted base URL but NO key: the shared path must
+        // ignore both, and the SSRF guard must NOT fire (it is key-scoped).
+        headers: {
+          "x-agent-model": "attacker-model",
+          "x-agent-base-url": "https://evil.example.com",
+        },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(clientOptions.value.apiKey).toBe(SHARED_KEY);
+    expect(clientOptions.value.baseURL).toBe("https://api.deepseek.com/anthropic");
+    const [payload] = createMock.mock.calls[0];
+    expect(payload.model).toBe("deepseek-v4-flash");
+  });
+
+  it("matches BYOK headers case-insensitively", async () => {
+    const handler = await loadHandler();
+    const res = createMockRes();
+
+    await handler(
+      createRequest({
+        ip: "10.30.0.8",
+        headers: {
+          "X-Agent-Key": BYOK_KEY,
+          "X-Agent-Base-Url": "https://api.anthropic.com",
+        },
+        body: { query: "N3 block height?", chain: "n3" },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(clientOptions.value.apiKey).toBe(BYOK_KEY);
+    expect(clientOptions.value.baseURL).toBe("https://api.anthropic.com");
   });
 });
 

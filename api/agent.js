@@ -41,6 +41,14 @@ async function loadMcpClient() {
 const DEFAULT_MODEL = "deepseek-v4-flash";
 const DEFAULT_BASE_URL = "https://api.deepseek.com/anthropic";
 const MODEL = process.env.AGENT_MODEL || DEFAULT_MODEL;
+
+// BYOK (bring-your-own-key) base-URL allowlist. On a BYOK request the base URL
+// arrives in a browser-supplied header, so it is attacker-influenced and an SSRF
+// vector: the server MUST only ever repoint the SDK at one of these fixed,
+// Anthropic-Messages-compatible endpoints. Exact-string match (no parsing, no
+// normalization) is the safest allowlist. DEFAULT_BASE_URL is a member, so an
+// omitted header falls back to the same default the hosted path uses.
+const ALLOWED_BASE_URLS = ["https://api.deepseek.com/anthropic", "https://api.anthropic.com"];
 const MAX_TOKENS = 2048;
 
 // Safety cap on tool-execution rounds so a model that keeps calling tools cannot
@@ -433,13 +441,68 @@ function collectProposals(content) {
   return proposals;
 }
 
+// --- BYOK credential intake ------------------------------------------------
+//
+// The user's own LLM credential rides in request HEADERS (never the body, never
+// the URL): `x-agent-key` (the secret), optional `x-agent-model`, optional
+// `x-agent-base-url`. They are read for a SINGLE request and MUST NEVER be
+// logged, echoed into a response, or persisted — the same no-leak discipline the
+// shared DeepSeek key and MCP bearer already get here. Node lowercases header
+// names, but we match case-insensitively so nothing can slip a credential past
+// on casing. Values are trimmed; a blank/whitespace key counts as absent.
+function readHeader(req, name) {
+  const headers = (req && req.headers) || {};
+  const target = name.toLowerCase();
+  let raw = headers[target];
+  if (raw === undefined) {
+    for (const headerName of Object.keys(headers)) {
+      if (headerName.toLowerCase() === target) {
+        raw = headers[headerName];
+        break;
+      }
+    }
+  }
+  if (Array.isArray(raw)) raw = raw[0];
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+// Returns the BYOK request extras. `key` is "" when the header is absent or
+// blank (→ shared-key path); `model`/`baseUrl` are only consulted with a key.
+function readByokCredentials(req) {
+  return {
+    key: readHeader(req, "x-agent-key"),
+    model: readHeader(req, "x-agent-model"),
+    baseUrl: readHeader(req, "x-agent-base-url"),
+  };
+}
+
 async function handler(req, res) {
   if (req.method !== "POST") {
     return methodNotAllowed(res, { Allow: "POST", ...NO_STORE });
   }
 
-  // Expected-unconfigured cases degrade to 503 JSON instead of a raw 500.
-  if (!process.env.DEEPSEEK_API_KEY) {
+  // BYOK: the caller may attach their OWN LLM credential in headers for this one
+  // request. Read it up front (never log, echo, or persist it) so it can steer
+  // the client build below and relax the shared-key requirement. When no key is
+  // sent every field here is "" and the handler behaves as the hosted path.
+  const byok = readByokCredentials(req);
+
+  // SSRF guard: the BYOK base URL is browser-supplied, so it is attacker-
+  // influenced. Reject anything off the fixed allowlist with a 400 before doing
+  // any work. Only meaningful alongside a key; an empty header means "default".
+  // The error body carries no request value, so no credential can leak here.
+  if (byok.key && byok.baseUrl && !ALLOWED_BASE_URLS.includes(byok.baseUrl)) {
+    return sendJson(res, 400, { error: "agent_base_url_not_allowed" }, NO_STORE);
+  }
+
+  // Effective model for this request: a BYOK request may override it; otherwise
+  // the shared server default. Used for the model call and the reported `model`.
+  const requestModel = byok.key && byok.model ? byok.model : MODEL;
+
+  // Expected-unconfigured cases degrade to 503 JSON instead of a raw 500. A BYOK
+  // request carries its own key, so a missing shared key is NOT "unconfigured"
+  // for it — only reject when neither a user key nor the shared key is present.
+  if (!byok.key && !process.env.DEEPSEEK_API_KEY) {
     return sendJson(res, 503, UNAVAILABLE_UNCONFIGURED_AGENT, NO_STORE);
   }
   if (!process.env.NEOX_MCP_URL) {
@@ -484,7 +547,7 @@ async function handler(req, res) {
     return sendJson(
       res,
       200,
-      { answer: OFF_TOPIC_ANSWER, toolUses: [], proposals: [], model: MODEL },
+      { answer: OFF_TOPIC_ANSWER, toolUses: [], proposals: [], model: requestModel },
       NO_STORE,
     );
   }
@@ -507,8 +570,12 @@ async function handler(req, res) {
     const tools = await listTools();
     const Anthropic = await loadAnthropic();
     const client = new Anthropic({
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      baseURL: process.env.DEEPSEEK_BASE_URL || DEFAULT_BASE_URL,
+      // BYOK request → the user's key + validated (allowlisted) base URL; else
+      // the shared server key + configured/default base URL. Never logged.
+      apiKey: byok.key || process.env.DEEPSEEK_API_KEY,
+      baseURL: byok.key
+        ? byok.baseUrl || DEFAULT_BASE_URL
+        : process.env.DEEPSEEK_BASE_URL || DEFAULT_BASE_URL,
       timeout: REQUEST_TIMEOUT_MS,
     });
 
@@ -531,7 +598,7 @@ async function handler(req, res) {
 
       response = await client.messages.create(
         {
-          model: MODEL,
+          model: requestModel,
           max_tokens: MAX_TOKENS,
           system,
           messages,
@@ -546,7 +613,7 @@ async function handler(req, res) {
         return sendJson(
           res,
           200,
-          { answer: REFUSAL_ANSWER, toolUses, proposals, model: (response && response.model) || MODEL },
+          { answer: REFUSAL_ANSWER, toolUses, proposals, model: (response && response.model) || requestModel },
           NO_STORE,
         );
       }
@@ -611,7 +678,7 @@ async function handler(req, res) {
       answer: truncated && answer.length === 0 ? DEADLINE_ANSWER : answer,
       toolUses,
       proposals,
-      model: (response && response.model) || MODEL,
+      model: (response && response.model) || requestModel,
       ...(truncated ? { truncated: true } : {}),
     },
     NO_STORE,
